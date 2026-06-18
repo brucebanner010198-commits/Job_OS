@@ -14,7 +14,7 @@ import {
  * Set JOB_OS_ACCESS_TOKEN in production; loopback requests are always allowed.
  * Valid tokens in query/header are persisted to an httpOnly cookie for server actions.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
   const provided = readProvidedToken(request);
