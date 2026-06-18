@@ -17,7 +17,7 @@ async function requireAccessWhenLan(): Promise<void> {
   const provided = readProvidedTokenFromHeaders(h);
   if (!verifyAccessToken(provided)) {
     throw new Error(
-      "Unauthorized - visit with ?token=YOUR_TOKEN once or send Authorization: Bearer.",
+      "Unauthorized - send Authorization: Bearer or present a valid job_os_access cookie.",
     );
   }
 }

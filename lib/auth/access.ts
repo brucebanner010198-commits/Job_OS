@@ -62,7 +62,12 @@ export function readProvidedToken(request: Request): string | null {
   try {
     const url = new URL(request.url);
     const q = url.searchParams.get("token");
-    if (q) return q.trim();
+    if (q) {
+      console.warn(
+        "[job-os] Deprecation: ?token= query param leaks in logs/referrers; use Authorization: Bearer or job_os_access cookie instead.",
+      );
+      return q.trim();
+    }
   } catch {
     /* ignore */
   }

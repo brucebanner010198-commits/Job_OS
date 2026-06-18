@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAccessForMutation } from "@/lib/auth/require-access";
+import {
+  requireAccessForMutation,
+  requireAccessForRead,
+} from "@/lib/auth/require-access";
 import { getAppContext } from "@/lib/app-context";
 import {
   getDreamCompanies,
@@ -10,6 +13,7 @@ import {
 import type { DreamCompany } from "@/lib/goals/dream-companies";
 
 export async function loadDreamCompaniesAction(): Promise<DreamCompany[]> {
+  await requireAccessForRead();
   const { scope } = await getAppContext();
   return getDreamCompanies(scope);
 }
