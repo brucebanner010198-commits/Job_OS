@@ -17,6 +17,7 @@ import {
 } from "@/lib/auth/access";
 import { getAppContext } from "@/lib/app-context";
 import { buildPlaintextExport } from "@/lib/backup/service";
+import { auditBackupExport } from "@/lib/observability/audit";
 
 function unauthorizedExport(): Response {
   return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
@@ -46,6 +47,10 @@ export async function GET(): Promise<Response> {
   try {
     const { scope } = await getAppContext();
     const exp = await buildPlaintextExport(scope);
+    auditBackupExport({
+      userId: scope.userId,
+      profileId: scope.profileId,
+    });
     const stamp = exp.exportedAt.replace(/[-:T.Z]/g, "").slice(0, 14);
     const body = JSON.stringify(exp, null, 2);
     return new Response(body, {

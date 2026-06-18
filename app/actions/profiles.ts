@@ -18,6 +18,7 @@ import {
   deleteProfileSchema,
   parseActionInput,
 } from "@/lib/validation/action-schemas";
+import { auditProfileDeleted } from "@/lib/observability/audit";
 
 export type ProfileSummary = { id: string; name: string };
 
@@ -57,7 +58,15 @@ export async function deleteProfileAction(profileId: string): Promise<void> {
   await requireAccessForMutation();
   const { profileId: id } = parseActionInput(deleteProfileSchema, { profileId });
   const { scope, profile } = await getAppContext();
+  const target = await getProfileById(scope.userId, id);
+  if (!target) throw new Error("Profile not found.");
+
   await deleteProfile(scope.userId, id);
+  auditProfileDeleted({
+    userId: scope.userId,
+    profileId: id,
+    profileName: target.name,
+  });
 
   if (profile.id === id) {
     const remaining = await listProfiles(scope.userId);

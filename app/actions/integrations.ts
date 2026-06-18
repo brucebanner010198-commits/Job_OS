@@ -19,6 +19,7 @@ import {
   parseActionInput,
   saveIntegrationSecretsSchema,
 } from "@/lib/validation/action-schemas";
+import { auditIntegrationSecretSaved } from "@/lib/observability/audit";
 
 export interface IntegrationFieldStatus {
   key: string;
@@ -101,8 +102,10 @@ export async function saveIntegrationSecretsAction(
   if (!def) throw new Error("Unknown integration");
 
   const allowed = new Set(def.fields.map((f) => f.key));
+  const changedKeys: string[] = [];
   for (const [key, value] of Object.entries(parsed.values)) {
     if (!allowed.has(key)) continue;
+    changedKeys.push(key);
     const trimmed = value.trim();
     if (trimmed) {
       await setSecret(key, trimmed);
@@ -110,6 +113,11 @@ export async function saveIntegrationSecretsAction(
       await deleteSecret(key);
     }
   }
+
+  auditIntegrationSecretSaved({
+    integrationId: parsed.integrationId,
+    keys: changedKeys,
+  });
 
   revalidatePath("/integrations");
   return { ok: true };
