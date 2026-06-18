@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAccessForMutation } from "@/lib/auth/require-access";
+import {
+  requireAccessForMutation,
+  requireAccessForRead,
+} from "@/lib/auth/require-access";
 import { getPrimaryUser } from "@/lib/user";
 import {
   createProfile,
@@ -14,12 +17,14 @@ import { getAppContext, setActiveProfileCookie } from "@/lib/app-context";
 export type ProfileSummary = { id: string; name: string };
 
 export async function listProfilesAction(): Promise<ProfileSummary[]> {
+  await requireAccessForRead();
   const user = await getPrimaryUser();
   const profiles = await listProfiles(user.id);
   return profiles.map((p) => ({ id: p.id, name: p.name }));
 }
 
 export async function getActiveProfileAction(): Promise<ProfileSummary> {
+  await requireAccessForRead();
   const { profile } = await getAppContext();
   return { id: profile.id, name: profile.name };
 }

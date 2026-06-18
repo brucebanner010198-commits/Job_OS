@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAccessForMutation } from "@/lib/auth/require-access";
+import {
+  requireAccessForMutation,
+  requireAccessForRead,
+} from "@/lib/auth/require-access";
 import {
   deleteSecret,
   getSecret,
@@ -55,6 +58,7 @@ async function isEnabled(def: IntegrationDef): Promise<boolean> {
 
 /** Load integration cards for the portal (no secret values). */
 export async function listIntegrationsAction(): Promise<IntegrationView[]> {
+  await requireAccessForRead();
   return Promise.all(
     INTEGRATIONS.map(async (def) => {
       const fields = await fieldStatuses(def);

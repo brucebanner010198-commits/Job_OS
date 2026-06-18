@@ -16,6 +16,10 @@ import {
 import { allIntegrationStatuses } from "@/lib/integrations/registry";
 import { scopeWhere } from "@/lib/profiles/scope";
 import { isPublicHttpUrl } from "@/lib/security/url";
+import {
+  requireAccessForMutation,
+  requireAccessForRead,
+} from "@/lib/auth/require-access";
 
 let passed = 0;
 let failed = 0;
@@ -104,6 +108,15 @@ async function main(): Promise<void> {
   );
 
   console.log("\nsecurity - server action access gate:");
+
+  check(
+    "requireAccessForRead exported for LAN read actions",
+    typeof requireAccessForRead === "function",
+  );
+  check(
+    "requireAccessForMutation exported for LAN write actions",
+    typeof requireAccessForMutation === "function",
+  );
 
   check(
     "accessRequiredForHost on LAN when token set",

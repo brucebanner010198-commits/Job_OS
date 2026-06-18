@@ -10,8 +10,7 @@ import {
   verifyAccessToken,
 } from "@/lib/auth/access";
 
-/** Throws when a mutation is attempted without a valid access token on LAN. */
-export async function requireAccessForMutation(): Promise<void> {
+async function requireAccessWhenLan(): Promise<void> {
   const h = await headers();
   if (!accessRequiredForHost(h.get("host"))) return;
 
@@ -21,4 +20,14 @@ export async function requireAccessForMutation(): Promise<void> {
       "Unauthorized - visit with ?token=YOUR_TOKEN once or send Authorization: Bearer.",
     );
   }
+}
+
+/** Throws when a mutation is attempted without a valid access token on LAN. */
+export async function requireAccessForMutation(): Promise<void> {
+  await requireAccessWhenLan();
+}
+
+/** Throws when a read is attempted without a valid access token on LAN. */
+export async function requireAccessForRead(): Promise<void> {
+  await requireAccessWhenLan();
 }
