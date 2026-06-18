@@ -7,6 +7,8 @@
  * ?token= query param).
  */
 
+import type { NextRequest } from "next/server";
+
 /** Constant-time string compare (edge-safe - no node:crypto). */
 function timingSafeEqualStrings(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -72,6 +74,15 @@ export function readProvidedToken(request: Request): string | null {
     /* ignore */
   }
   return request.headers.get("x-job-os-token")?.trim() ?? null;
+}
+
+/** Bearer / query / header / cookie token from a Next.js middleware request. */
+export function readProvidedTokenFromNextRequest(
+  request: NextRequest,
+): string | null {
+  const fromHeaders = readProvidedToken(request);
+  if (fromHeaders) return fromHeaders;
+  return request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ?? null;
 }
 
 /** Read bearer / header / cookie token from Next.js `headers()`. */
