@@ -1,0 +1,130 @@
+Job OS — Source-Available Custom License
+
+Copyright (c) 2026 Solomon S Joseph. All rights reserved.
+
+This software and associated documentation files (the "Software") are
+owned exclusively by Solomon S Joseph ("Licensor"). The Software is
+NOT licensed under an OSI-approved open source license. Source code is
+made available under the terms below.
+
+================================================================================
+1. DEFINITIONS
+================================================================================
+
+"Personal / Non-Commercial Use" means use of the Software by an individual
+or organization solely for personal, educational, research, or other
+purposes where no direct or indirect commercial benefit is derived from
+the use, distribution, or operation of the Software or derivative works.
+
+"Commercial Use" means any use of the Software that is not Personal /
+Non-Commercial Use, including but not limited to: offering the Software
+or derivative works as a paid product or service; using the Software in
+revenue-generating business operations; sublicensing or reselling access
+to the Software; or incorporating the Software into a commercial offering.
+
+"You" means any individual or legal entity exercising permissions granted
+by this license, other than the Licensor.
+
+================================================================================
+2. GRANT — PERSONAL / NON-COMMERCIAL USE (ALL PARTIES)
+================================================================================
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of the Software, to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software ONLY for Personal /
+Non-Commercial Use, subject to the following conditions:
+
+  (a) The above copyright notice and this permission notice shall be
+      included in all copies or substantial portions of the Software.
+
+  (b) Commercial Use by any party other than the Licensor (except as
+      stated in Section 3) is expressly prohibited without a separate
+      written royalty agreement with the Licensor.
+
+  (c) You may fork and contribute improvements back to the official
+      repository. Contributions do not transfer copyright; the Licensor
+      retains sole ownership of the Software.
+
+================================================================================
+3. NAMED COMMERCIAL EXCEPTION — SOLOMON S JOSEPH
+================================================================================
+
+Solomon S Joseph (GitHub: solomonsjoseph), as the sole copyright owner
+and designated repository maintainer, is explicitly granted unlimited
+rights to use the Software for any purpose, including Commercial Use,
+without payment of royalties or additional licensing fees.
+
+This exception applies only to Solomon S Joseph personally and does not
+extend to employees, contractors, affiliates, or any other party acting
+on his behalf unless expressly authorized in writing.
+
+================================================================================
+4. COMMERCIAL RESTRICTION — THIRD PARTIES
+================================================================================
+
+Commercial Use of the Software by any party other than Solomon S Joseph
+is PROHIBITED unless you have entered into a separate written royalty
+agreement with the Licensor.
+
+If you are engaged in Commercial Use without such an agreement, you must
+immediately cease all use, distribution, and modification of the Software
+and destroy all copies in your possession or control.
+
+For commercial licensing inquiries, see COMMERCIAL-LICENSE.md or contact:
+
+  Email: brucebanner010198@gmail.com
+  Subject line: "Job OS Commercial License Inquiry"
+
+================================================================================
+5. REPOSITORY GOVERNANCE
+================================================================================
+
+The official repository is maintained by Solomon S Joseph (solomonsjoseph)
+with sole full-access maintainer rights, as enforced via .github/CODEOWNERS.
+
+Third parties may contribute under the Personal / Non-Commercial Use grant
+in Section 2. No contributor license agreement (CLA) is required for
+personal contributions, but contributors acknowledge that Commercial Use
+of their contributions by third parties remains subject to Section 4.
+
+================================================================================
+6. DISCLAIMER OF WARRANTY
+================================================================================
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+================================================================================
+7. LIMITATION OF LIABILITY
+================================================================================
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL
+SOLOMON S JOSEPH BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT, OR
+CONSEQUENTIAL DAMAGES WHATSOEVER (INCLUDING, WITHOUT LIMITATION, DAMAGES
+FOR LOSS OF BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF BUSINESS
+INFORMATION, OR ANY OTHER PECUNIARY LOSS) ARISING OUT OF THE USE OF OR
+INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
+
+================================================================================
+8. TERMINATION
+================================================================================
+
+This license terminates automatically if you violate any of its terms.
+Upon termination, you must cease all use of the Software and destroy all
+copies. Sections 4, 6, 7, and 9 survive termination.
+
+================================================================================
+9. GOVERNING LAW
+================================================================================
+
+This license shall be governed by and construed in accordance with the
+laws applicable to the Licensor's jurisdiction, without regard to
+conflict-of-law principles.
+
+For questions about this license, contact: brucebanner010198@gmail.com
