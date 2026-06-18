@@ -35,13 +35,17 @@ jobs:
           npm run test:scoring
           npm run test:jobs
           npm run test:brief
+          npm run test:brief-web-research
+          npm run test:crunchbase
           npm run test:apply
           npm run test:apply-state
           npm run test:screening
           npm run test:resume-skim
+          npm run test:resume-import
           npm run test:track
           npm run test:warm
           npm run test:followup
+          npm run test:salary
           npm run test:backup
           npm run test:outcomes
           npm run test:security
@@ -55,4 +59,9 @@ jobs:
           npm run test:coverletter-standards
           npm run test:competitor-fixes
           npm run test:job-training
+          npm run test:onboarding
+          npm run test:linkedin
+          npm run test:push
+          npm run test:career-agent
+          npm run test:desktop
           npm run test:e2e-journey
