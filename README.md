@@ -83,9 +83,23 @@ npm run test:e2e-journey
 | `npm run backup` | Encrypted profile snapshot |
 | `npm run db:studio` | Prisma Studio |
 
+## Troubleshooting
+
+### Stale `.next` cache
+
+If the dev server shows blank pages, stale routes, or build errors after upgrading Next.js or renaming routes, stop the dev server first, then clear the cache:
+
+```bash
+# stop npm run dev (Ctrl+C), then:
+rm -rf .next
+npm run dev
+```
+
+Never delete `.next` while `next dev` is still running — file locks can leave a corrupt cache.
+
 ## Security notes
 
-- Mutations require access token on non-localhost when `JOB_OS_ACCESS_TOKEN` is set
+- Read and write server actions require an access token on non-localhost when `JOB_OS_ACCESS_TOKEN` is set
 - Gmail and apply flows are human-in-the-loop by design
 - Exclude `.secrets/` from cloud sync; enable FileVault on macOS
 
