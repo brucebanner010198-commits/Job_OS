@@ -271,7 +271,7 @@ export function buildNegotiationPlan(
     counterRange.high,
     ...components.flatMap((c) => [c.current, c.suggested]),
   ];
-  let provenanceOk = numbers.every((n) => Number.isFinite(n));
+  const provenanceOk = numbers.every((n) => Number.isFinite(n));
   if (!provenanceOk) {
     assumptions.push(
       `PROVENANCE WARNING: a derived figure was non-finite (check the offer inputs). The plan is incomplete and must not be relied on.`,

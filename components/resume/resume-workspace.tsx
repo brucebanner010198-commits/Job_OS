@@ -199,6 +199,7 @@ export function ResumeWorkspace({
         (!initialTitle || norm(t.title) === norm(initialTitle)),
     );
     if (!hasMatch) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync form from URL/deep-link props
       setShowForm(true);
       if (initialTitle) setTitle(initialTitle);
       if (initialCompany) setCompany(initialCompany);
@@ -220,6 +221,7 @@ export function ResumeWorkspace({
   useEffect(() => {
     if (manualOverride) return;
     const r = resumeFromTarget(selected);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derive tailor state when selection changes
     setTailor(r);
     setRecruiterSummary(r?.recruiterSummary ?? selected?.latestResume?.recruiterSummary);
     setCover(coverFromTarget(selected));

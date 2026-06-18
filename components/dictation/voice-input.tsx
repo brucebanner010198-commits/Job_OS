@@ -63,9 +63,14 @@ export function VoiceInput(props: VoiceInputProps) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   // Keep latest value in a ref so the recognition callback always appends to current text.
   const valueRef = useRef(value);
-  valueRef.current = value;
 
   useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    // Client-only API probe after mount (SSR has no SpeechRecognition).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount probe
     setSupported(getSpeechRecognitionCtor() !== null);
   }, []);
 
