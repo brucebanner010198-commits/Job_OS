@@ -15,6 +15,10 @@ import {
   integrationById,
   type IntegrationDef,
 } from "@/lib/integrations/registry";
+import {
+  parseActionInput,
+  saveIntegrationSecretsSchema,
+} from "@/lib/validation/action-schemas";
 
 export interface IntegrationFieldStatus {
   key: string;
@@ -89,11 +93,15 @@ export async function saveIntegrationSecretsAction(
   values: Record<string, string>,
 ): Promise<{ ok: true }> {
   await requireAccessForMutation();
-  const def = integrationById(integrationId);
+  const parsed = parseActionInput(saveIntegrationSecretsSchema, {
+    integrationId,
+    values,
+  });
+  const def = integrationById(parsed.integrationId);
   if (!def) throw new Error("Unknown integration");
 
   const allowed = new Set(def.fields.map((f) => f.key));
-  for (const [key, value] of Object.entries(values)) {
+  for (const [key, value] of Object.entries(parsed.values)) {
     if (!allowed.has(key)) continue;
     const trimmed = value.trim();
     if (trimmed) {

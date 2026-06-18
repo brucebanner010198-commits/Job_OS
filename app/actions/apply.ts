@@ -9,6 +9,10 @@ import {
   approveAndSubmit,
 } from "@/lib/apply/service";
 import type { ApplicationAnswersData, ApplyState } from "@/lib/apply/types";
+import {
+  approveSubmitSchema,
+  parseActionInput,
+} from "@/lib/validation/action-schemas";
 
 /** Persist the user's confirmed standard answers (work auth, salary, links, etc.). */
 export async function saveAnswersAction(
@@ -43,8 +47,11 @@ export async function approveSubmitAction(
   applicationId: string,
 ): Promise<{ ok: boolean; state: ApplyState }> {
   await requireAccessForMutation();
+  const { applicationId: id } = parseActionInput(approveSubmitSchema, {
+    applicationId,
+  });
   const { scope } = await getAppContext();
-  const result = await approveAndSubmit(scope, applicationId);
+  const result = await approveAndSubmit(scope, id);
   revalidatePath("/apply");
   return result;
 }
@@ -55,7 +62,7 @@ export async function takeControlAction(
   await requireAccessForMutation();
   const { scope } = await getAppContext();
   const { takeControl } = await import("@/lib/apply/session-service");
-  takeControl(scope, applicationId);
+  await takeControl(scope, applicationId);
   revalidatePath("/apply");
   return { ok: true };
 }
@@ -66,7 +73,7 @@ export async function resumeAiAction(
   await requireAccessForMutation();
   const { scope } = await getAppContext();
   const { resumeAi } = await import("@/lib/apply/session-service");
-  resumeAi(scope, applicationId);
+  await resumeAi(scope, applicationId);
   revalidatePath("/apply");
   return { ok: true };
 }

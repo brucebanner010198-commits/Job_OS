@@ -13,6 +13,11 @@ import {
   listProfiles,
 } from "@/lib/profiles/service";
 import { getAppContext, setActiveProfileCookie } from "@/lib/app-context";
+import {
+  createProfileSchema,
+  deleteProfileSchema,
+  parseActionInput,
+} from "@/lib/validation/action-schemas";
 
 export type ProfileSummary = { id: string; name: string };
 
@@ -40,8 +45,9 @@ export async function switchProfileAction(profileId: string): Promise<void> {
 
 export async function createProfileAction(name: string): Promise<ProfileSummary> {
   await requireAccessForMutation();
+  const { name: profileName } = parseActionInput(createProfileSchema, { name });
   const user = await getPrimaryUser();
-  const profile = await createProfile(user.id, name);
+  const profile = await createProfile(user.id, profileName);
   await setActiveProfileCookie(profile.id);
   revalidatePath("/", "layout");
   return { id: profile.id, name: profile.name };
@@ -49,10 +55,11 @@ export async function createProfileAction(name: string): Promise<ProfileSummary>
 
 export async function deleteProfileAction(profileId: string): Promise<void> {
   await requireAccessForMutation();
+  const { profileId: id } = parseActionInput(deleteProfileSchema, { profileId });
   const { scope, profile } = await getAppContext();
-  await deleteProfile(scope.userId, profileId);
+  await deleteProfile(scope.userId, id);
 
-  if (profile.id === profileId) {
+  if (profile.id === id) {
     const remaining = await listProfiles(scope.userId);
     const next = remaining[0];
     if (next) await setActiveProfileCookie(next.id);
