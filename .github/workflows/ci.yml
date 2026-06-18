@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Integrations tests
+        run: npm run test:integrations
+
+      - name: Run invariant tests
+        run: |
+          npm run test:provenance
+          npm run test:goals
+          npm run test:scoring
+          npm run test:jobs
+          npm run test:brief
+          npm run test:apply
+          npm run test:apply-state
+          npm run test:screening
+          npm run test:resume-skim
+          npm run test:track
+          npm run test:warm
+          npm run test:followup
+          npm run test:backup
+          npm run test:outcomes
+          npm run test:security
+          npm run test:profiles
+          npm run test:autopilot
+          npm run test:hire-probability
+          npm run test:knowledge
+          npm run test:apply-driver
+          npm run test:interview
+          npm run test:voice
+          npm run test:coverletter-standards
+          npm run test:competitor-fixes
+          npm run test:job-training
+          npm run test:e2e-journey

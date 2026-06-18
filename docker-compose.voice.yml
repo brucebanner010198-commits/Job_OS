@@ -1,0 +1,14 @@
+# Optional OSS voice runner (Pipecat + faster-whisper + Kokoro + OpenRouter).
+# Start: docker compose -f docker-compose.voice.yml up -d
+# Then set PIPECAT_CONNECT_URL=http://localhost:8765/connect in Integrations.
+services:
+  pipecat-runner:
+    image: node:22-alpine
+    container_name: jobos-pipecat-runner
+    working_dir: /app
+    volumes:
+      - ./scripts/pipecat-runner:/app
+    ports:
+      - "8765:8765"
+    command: ["node", "server.mjs"]
+    restart: unless-stopped

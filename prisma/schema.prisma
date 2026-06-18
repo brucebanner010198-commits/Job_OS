@@ -1,0 +1,778 @@
+// Job OS — data spine.
+// Every table carries userId so multi-user/cloud is additive, not a rewrite.
+// pgvector columns are added in Phase 3 (job discovery + scoring).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profileEntries ProfileEntry[]
+  profileNotes   ProfileNote[]
+  jobs           Job[]
+  applications   Application[]
+  targets        Target[]
+  resumeVersions ResumeVersion[]
+  coverLetters   CoverLetter[]
+  careerGoals        CareerGoal[]
+  companies          Company[]
+  companyBriefs      CompanyBrief[]
+  applicationAnswers ApplicationAnswers[]
+  gmailAccounts      GmailAccount[]
+  inboxItems      InboxItem[]
+  statusProposals StatusProposal[]
+  connections     Connection[]
+  warmIntros      WarmIntro[]
+  followUps       FollowUp[]
+  studyGuides       StudyGuide[]
+  interviewSessions InterviewSession[]
+  voiceUsage        VoiceUsage[]
+  scheduledRuns     ScheduledRun[]
+  profileBackups    ProfileBackup[]
+  profiles          Profile[]
+}
+
+// Named identity within one install (e.g. "Sam", "Alex"). Career data is scoped
+// per profile; API keys / integrations stay per-install (see lib/secrets).
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profileEntries     ProfileEntry[]
+  profileNotes       ProfileNote[]
+  jobs               Job[]
+  applications       Application[]
+  targets            Target[]
+  resumeVersions     ResumeVersion[]
+  coverLetters       CoverLetter[]
+  careerGoal         CareerGoal?
+  companies          Company[]
+  companyBriefs      CompanyBrief[]
+  applicationAnswers ApplicationAnswers?
+  gmailAccount       GmailAccount?
+  inboxItems         InboxItem[]
+  statusProposals    StatusProposal[]
+  connections        Connection[]
+  warmIntros         WarmIntro[]
+  followUps          FollowUp[]
+  studyGuides        StudyGuide[]
+  interviewSessions  InterviewSession[]
+  voiceUsage         VoiceUsage[]
+  scheduledRuns      ScheduledRun[]
+  profileBackups     ProfileBackup[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Raw dictation/import log — keeps the original note behind every extracted fact.
+model ProfileNote {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  rawText     String
+  cleanedText String?
+  source      String   @default("dictation") // dictation | import | manual
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+// A role the user is tailoring for (manual entry or a discovered Job).
+model Target {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId      String
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title          String
+  company        String
+  jobDescription String
+  sourceUrl      String?
+  jobId          String?
+  createdAt      DateTime @default(now())
+
+  resumeVersions ResumeVersion[]
+  coverLetters   CoverLetter[]
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+model ResumeVersion {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  targetId     String
+  target       Target   @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  // TailoredResume JSON
+  data         Json
+  provenanceOk Boolean  @default(false)
+  violations   Json?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+model CoverLetter {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  targetId     String
+  target       Target   @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  body         String
+  wordCount    Int
+  provenanceOk Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+// ─── Master profile (single source of truth) ─────────────────────────────
+// One fact per entry, typed by kind. `data` holds the structured payload.
+// `sourceNote` keeps provenance (the raw note a fact was derived from).
+enum ProfileEntryKind {
+  CONTACT
+  SUMMARY
+  EXPERIENCE
+  EDUCATION
+  PROJECT
+  SKILL
+  ACHIEVEMENT
+  CERTIFICATION
+  LIFE_FACT
+}
+
+model ProfileEntry {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId  String
+  profile    Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  kind       ProfileEntryKind
+  data       Json
+  sourceNote String?
+  // sensitive entries (health/family/protected-class) are redacted before
+  // ever reaching an LLM — see lib/ai redaction layer.
+  sensitive  Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId, kind])
+  @@index([profileId, kind])
+}
+
+// ─── Jobs ────────────────────────────────────────────────────────────────
+enum AutonomyRoute {
+  AUTONOMOUS
+  ASSISTED
+  MANUAL
+}
+
+model Job {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId    String
+  profile      Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  // canonical company+title+location hash — collapses exact duplicate postings.
+  identityHash String
+  // MinHash/LSH band signature over JD text — collapses NEAR-duplicate postings
+  // (the ~5 reworded copies of the same job across aggregators).
+  fingerprint  String?
+  source       String
+  url          String?
+  company      String
+  title        String
+  location     String?
+  remote       Boolean        @default(false)
+  description  String?
+  atsType      String?
+  salaryMin    Int?
+  salaryMax    Int?
+  // ─ Dedupe / ghost / scam stage (runs BEFORE scoring, plan §8a) ─
+  // When set, this record is a near-dup that collapsed into another Job.id.
+  canonicalId  String?
+  // Excluded from the ranked queue (a duplicate, ghost, or scam posting).
+  excluded     Boolean        @default(false)
+  excludeReason String?       // "duplicate" | "ghost" | "scam"
+  ghostScore   Float?
+  scamScore    Float?
+  flags        Json?          // { ghostReasons: string[], scamReasons: string[] }
+  // ─ Scoring (plan §8b — explainable, never a mystic single number) ─
+  route        AutonomyRoute?
+  relevance    Float?
+  reachability Float?
+  relevanceDriver String?     // "resume" | "goals" | "both"
+  hardGatePass Boolean?       // false → a hard requirement caps the score
+  score        Float?         // final combined score the queue ranks by
+  scoreExplain Json?          // { relevance, reachability, caps[], recencyBonus, notes[] }
+  firstSeenAt  DateTime       @default(now())
+  postedAt     DateTime?
+  createdAt    DateTime       @default(now())
+
+  application  Application?
+
+  @@unique([profileId, identityHash])
+  @@index([userId, firstSeenAt])
+  @@index([profileId, firstSeenAt])
+  @@index([profileId, excluded, score])
+}
+
+// ─── Applications ────────────────────────────────────────────────────────
+enum ApplicationStatus {
+  WARM_PATH
+  TO_APPLY
+  APPLIED
+  INTERVIEWING
+  OFFER
+  REJECTED
+  SKIPPED
+}
+
+// Apply state machine — never auto-retried while SUBMITTING (prevents
+// crash-induced double submission).
+enum ApplyState {
+  QUEUED
+  PREPARING
+  REVIEW
+  SUBMITTING
+  SUBMITTED
+  FAILED
+  PAUSED
+  HANDOFF
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  jobId       String            @unique // one application per job — no double-applies (plan §C)
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status      ApplicationStatus @default(TO_APPLY)
+  applyState  ApplyState        @default(QUEUED)
+  // Apply-engine plan (Phase 5). All JSON, DB-decoupled shapes in lib/apply/types.ts.
+  route          AutonomyRoute? // AUTONOMOUS | ASSISTED | MANUAL routing decision
+  preparedFields Json?          // PreparedField[] — the itemized review gate (label→value→source→confidence)
+  knockouts      Json?          // KnockoutResult — failed disqualifiers (never waste a submit)
+  detection      Json?          // DetectionResult — runtime CAPTCHA/login/Cloudflare scan
+  reviewedAt     DateTime?      // when the human approved the itemized gate
+  submittedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  events      ApplicationEvent[]
+  inboxItems      InboxItem[]
+  statusProposals StatusProposal[]
+  warmIntros      WarmIntro[]
+  followUps       FollowUp[]
+  studyGuides       StudyGuide[]
+  interviewSessions InterviewSession[]
+
+  @@index([userId, status])
+  @@index([profileId, status])
+}
+
+// ─── Application answers (confirmed once, plan §C) ────────────────────────
+// The user's standard/knockout answers, confirmed by the user a single time.
+// The LLM never INFERS a critical answer at submit time — it reads from here.
+model ApplicationAnswers {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId String  @unique
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  workAuthorized      Boolean?
+  requiresSponsorship Boolean?
+  yearsExperience     Int?
+  willingToRelocate   Boolean?
+  remoteOnly          Boolean?
+  locations           String[]
+  salaryExpectation   Int?
+  salaryCurrency      String?  @default("USD")
+  noticePeriod        String?
+  hasClearance        Boolean?
+
+  linkedinUrl String?
+  githubUrl   String?
+  websiteUrl  String?
+
+  // EEO / voluntary self-id — sensitive; user-entered, NEVER sent to an LLM.
+  eeo Json?
+  // Arbitrary remembered answers: [{ question, answer }].
+  customAnswers Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApplicationEvent {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          String
+  detail        Json?
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId, createdAt])
+}
+
+// ─── Career goals (lightweight) ───────────────────────────────────────────
+// One fixed north-star plus flexible milestones from 6 months to 10 years.
+// Feeds scoring: jobs are matched to where you're GOING, not just where
+// you've been (the goal axis in max(resume, goals) relevance — lib/scoring).
+enum GoalHorizon {
+  SIX_MONTHS
+  ONE_YEAR
+  TWO_YEARS
+  THREE_YEARS
+  FOUR_YEARS
+  FIVE_YEARS
+  TEN_YEARS
+}
+
+model CareerGoal {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId String  @unique
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  // The fixed end goal.
+  northStar String
+  // One-paragraph synthesized direction — the text used as the goal scoring axis.
+  summary   String
+  // Roles + domains the user is aiming for — the strongest scoring signals.
+  targetTitles     String[]
+  targetIndustries String[]
+  // [{ horizon: GoalHorizon, text: string, metric?: string }] across the 7 horizons.
+  milestones Json
+  // The original elicitation text the goals were synthesized from (provenance).
+  rawNote   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Company brief (entailment-checked, cited) ────────────────────────────
+// Plan §6 / Hardening §B: a brief never emits a claim it can't attribute. The
+// source must ENTAIL the claim (not merely be attached); Wikipedia/Wikidata are
+// corroboration-only; volatile facts (funding/headcount/leadership) need a
+// second source; every fact is stamped with a retrieval date and flagged stale.
+model Company {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
+  domain    String?
+  createdAt DateTime @default(now())
+
+  briefs    CompanyBrief[]
+
+  @@unique([profileId, name])
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+model CompanyBrief {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // One-paragraph factual overview (itself attributed; empty if nothing verifies).
+  summary     String?
+  // Claim[] JSON: [{ text, category, status, sources:[{url,title,snippet,kind}],
+  //   retrievedAt, stale, secondSourceRequired }]. Only entailment-passing
+  //   claims are persisted; refused claims are dropped, not stored as fact.
+  claims      Json
+  generatedAt DateTime @default(now())
+
+  @@index([userId, companyId])
+  @@index([profileId, companyId])
+}
+
+// ─── Track + Gmail (Phase 6) ──────────────────────────────────────────────
+// Kanban tracker fed by Gmail. The classifier PROPOSES status changes; it
+// NEVER auto-flips to INTERVIEWING/OFFER/REJECTED (a mislabeled "offer" or a
+// missed invite is the worst bug) — the user one-click confirms. Calendar
+// invites are parsed from the .ics MIME part, not body guesswork. OAuth tokens
+// live in the keychain / a gitignored local store — NEVER in this database.
+
+// A connected Gmail account. Holds only sync metadata + the incremental-sync
+// watermark (historyId) so catch-up after sleep is idempotent. The OAuth
+// tokens are NOT stored here (see lib/gmail/token-store.ts).
+model GmailAccount {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId    String    @unique
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  emailAddress String
+  // Gmail incremental-sync watermark: historyId of the last successful sync.
+  // The next sync asks history.list for everything since this point.
+  historyId    String?
+  lastSyncedAt DateTime?
+  connected    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// A classified inbound email relevant to the job search. Deduped by Gmail
+// message id so an idempotent re-sync never double-creates a row.
+model InboxItem {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId      String
+  profile        Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  gmailMessageId String
+  gmailThreadId  String
+  // RFC 822 Message-ID — used to thread an email onto an existing Application.
+  rfcMessageId   String?
+  fromEmail      String
+  fromDomain     String?
+  subject        String
+  snippet        String?
+  receivedAt     DateTime
+  // Classification (lib/track/classify.ts).
+  category       String       // INTERVIEW_INVITE | ASSESSMENT | RECRUITER_OUTREACH | APPLICATION_RECEIVED | SOFT_REJECTION | REJECTION | OFFER | NOT_JOB
+  confidence     Float
+  reasons        Json?        // string[]
+  // Parsed .ics VEVENT (from the MIME part), when the email carries an invite.
+  event          Json?        // CalendarEvent: { uid, method, summary, start, end, location, organizer, allDay, cancelled }
+  // The Application this email threaded onto (if any).
+  applicationId  String?
+  application    Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+
+  proposals      StatusProposal[]
+
+  @@unique([profileId, gmailMessageId])
+  @@index([userId, receivedAt])
+  @@index([profileId, receivedAt])
+}
+
+// A PROPOSED status change awaiting human confirmation. The app NEVER
+// auto-applies a move to INTERVIEWING/OFFER/REJECTED.
+enum ProposalState {
+  PENDING
+  CONFIRMED
+  DISMISSED
+}
+
+model StatusProposal {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId       String
+  profile         Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  inboxItemId     String
+  inboxItem       InboxItem          @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
+  applicationId   String?
+  application     Application?       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus      ApplicationStatus?
+  toStatus        ApplicationStatus
+  rationale       String
+  // Always true for INTERVIEWING/OFFER/REJECTED. Persisted so the UI renders
+  // the confirm gate consistently even after reload.
+  requiresConfirm Boolean            @default(true)
+  state           ProposalState      @default(PENDING)
+  decidedAt       DateTime?
+  createdAt       DateTime           @default(now())
+
+  @@unique([inboxItemId])
+  @@index([userId, state])
+  @@index([profileId, state])
+}
+
+// ─── Warm-path / referral engine (Phase 7, plan §9) ───────────────────────
+// The highest-yield lever: find a path IN to a target company before applying
+// cold (referrals are ~7-10x more likely to convert). Discovery uses the user's
+// OWN LinkedIn session via the local browser, human-in-the-loop — no scraping of
+// others at scale, only the user's own account. Every intro is DRAFT-FIRST and
+// NEVER auto-sent; the human edits and sends it themselves.
+
+// A person in the user's network — imported from their LinkedIn session, a
+// paste/CSV import, or manual entry (fixtures for the offline preview).
+// `relationship` is a typed string (ConnectionRelationship in lib/warm/types.ts);
+// `degree` is 1st/2nd/3rd. `howKnown` / `sharedContext` are the REAL facts the
+// intro draft is grounded in (provenance — the draft never invents a tie).
+model Connection {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  fullName      String
+  headline      String?
+  company       String?
+  companyDomain String?
+  title         String?
+  relationship  String   // COLLEAGUE | ALUMNI | MUTUAL | COMMUNITY | FRIEND | OTHER
+  degree        Int      @default(2) // 1 | 2 | 3
+  howKnown      String?  // grounding fact for the intro draft (provenance)
+  sharedContext String?  // e.g. "both worked at Acme 2019–2021"
+  profileUrl    String?
+  source        String   @default("fixture") // linkedin | import | manual | fixture
+  createdAt     DateTime @default(now())
+
+  warmIntros    WarmIntro[]
+
+  @@index([userId, company])
+  @@index([profileId, company])
+}
+
+// A DRAFTED intro/referral request for a target company, with its lifecycle.
+// PROPOSED → the user reviews/edits → SENT (they sent it themselves) or SKIPPED.
+// The app NEVER sends it automatically.
+enum WarmIntroState {
+  PROPOSED
+  SENT
+  SKIPPED
+}
+
+model WarmIntro {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  company       String
+  connectionId  String?
+  connection    Connection?    @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  pathKind      String         // CURRENT_COLLEAGUE | FORMER_COLLEAGUE | ALUMNI | MUTUAL_CONNECTION | COMMUNITY | FRIEND
+  channel       String         @default("linkedin") // linkedin | email
+  draftSubject  String?
+  draftBody     String
+  rationale     String
+  // Extractive-only: the draft is grounded in real connection/profile facts.
+  // False blocks the "mark sent" affordance, mirroring the resume provenance gate.
+  provenanceOk  Boolean        @default(true)
+  state         WarmIntroState @default(PROPOSED)
+  decidedAt     DateTime?
+  createdAt     DateTime       @default(now())
+
+  // One intro per company — the referral ask is per-company, not per-role; lets
+  // the service upsert idempotently when a draft is re-generated.
+  @@unique([profileId, company])
+}
+
+// ─── Follow-up cadence (Phase 7 booster, plan §10) ────────────────────────
+// Deterministic post-application and post-interview nudges with drafted
+// messages. The cadence NEVER nags (minimum spacing, one live nudge of a kind
+// per application) and STOPS on REJECTED; an OFFER hands off to the salary
+// coach. Drafts are never auto-sent — the human edits and sends.
+enum FollowUpState {
+  PENDING
+  DONE
+  DISMISSED
+}
+
+model FollowUp {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  applicationId String
+  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  kind          String        // APPLICATION_NUDGE | INTERVIEW_THANK_YOU | POST_INTERVIEW_CHECKIN | OFFER_RESPONSE
+  dueAt         DateTime
+  draftSubject  String?
+  draftBody     String
+  rationale     String
+  state         FollowUpState @default(PENDING)
+  decidedAt     DateTime?
+  createdAt     DateTime      @default(now())
+
+  // One live nudge of a given kind per application — idempotent re-compute.
+  @@unique([applicationId, kind])
+  @@index([userId, state, dueAt])
+  @@index([profileId, state, dueAt])
+}
+
+// ─── Interview prep (Phase 8, plan §5) ────────────────────────────────────
+// Three progressive modes: STUDY (top-5 Q&A, free, fully offline) → AI_SCREEN
+// (live voice, robotic first-filter persona) → REAL_HR (live voice, warm
+// per-company persona). Live voice is the one genuinely VARIABLE cost in the
+// system (ElevenLabs wall-clock minutes + separately-billed LLM tokens), so it
+// is wrapped in HARD caps: a per-session time limit, idle auto-hangup, and a
+// DAILY-minutes kill-switch (VoiceUsage). The ELEVENLABS_API_KEY never leaves the
+// server — the browser receives only a short-lived signed URL. A prep is
+// auto-PROPOSED (never auto-started) when Gmail flags an interview invite: the
+// human clicks to begin, so no paid session ever starts itself.
+
+enum InterviewMode {
+  STUDY
+  AI_SCREEN
+  REAL_HR
+}
+
+enum InterviewState {
+  READY
+  IN_PROGRESS
+  COMPLETED
+  ABORTED
+}
+
+// A persisted study guide: top-5 likely questions + STAR model-answer scaffolds,
+// EXTRACTIVE from the JD + the user's REAL profile facts (it never invents
+// experience or metrics). provenanceOk=false when an answer couldn't be grounded.
+model StudyGuide {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  company       String
+  role          String?
+  // QAItem[] JSON: [{ question, category, modelAnswer, starParts{}, usedFactIds[], tip }]
+  questions     Json
+  provenanceOk  Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // One guide per company — re-generating re-drafts in place, not spamming rows.
+  @@unique([profileId, company])
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+// One interview session (study or live), with its transcript + scored feedback.
+// A live session's duration counts toward the day's VoiceUsage kill-switch.
+model InterviewSession {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  company       String
+  role          String?
+  mode          InterviewMode
+  state         InterviewState @default(READY)
+  // TranscriptTurn[] JSON: [{ role: "interviewer"|"candidate", text, atSec }]
+  transcript    Json?
+  // SessionScore JSON: { clarity, structure, specificity, fit, overall, starFixes[], notes[], flags[] }
+  score         Json?
+  durationSec   Int?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+// Daily voice-minute accounting for the kill-switch. One row per (user, day);
+// the guard refuses to start a live session once the day's seconds hit the cap.
+model VoiceUsage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  // Local day key, "YYYY-MM-DD".
+  day         String
+  secondsUsed Int      @default(0)
+  sessions    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([profileId, day])
+}
+
+// ─── Scheduler / catch-up runner (Phase 9, plan §9 — "harden + schedule") ──
+// "Local-first cannot mean 24/7": a laptop is asleep most of the day, so the
+// background runner means "catch up on everything since last run, idempotently,
+// whenever the machine is awake." This is the WATERMARK store for that: one row
+// per (user, recurring job kind) holding the last-run timestamp. The pure
+// planner (lib/scheduler/plan.ts) reads lastRunAt to decide what is due; a job
+// missed during sleep is simply due on the next wake, and running it advances
+// lastRunAt so the same wake never double-runs it. A macOS launchd agent
+// (RunAtLoad + StartInterval) invokes scripts/run-catchup.ts; the OPTIONAL Gmail
+// Pub/Sub push relay is the one always-on cloud piece (a documented seam, off by
+// default — the default is polling on wake).
+model ScheduledRun {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId  String
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  // gmail-sync | discover-jobs | refresh-followups | refresh-career-content
+  kind       String
+  // The watermark: when this job last completed a run. null = never run → due now.
+  lastRunAt  DateTime?
+  lastStatus String?   // ok | failed | skipped
+  // A small JSON receipt of the last run (counts, error message) for the UI.
+  lastDetail Json?
+  runs       Int       @default(0)
+  updatedAt  DateTime  @updatedAt
+
+  // One watermark row per (user, job kind) — the runner upserts it idempotently.
+  @@unique([profileId, kind])
+}
+
+// Phase 11 — encrypted versioned backups of the master profile (Hardening §E:
+// it's the most irreplaceable data in the app). This row is the INDEX; the
+// AES-256-GCM-encrypted snapshot itself lives as a self-contained envelope file
+// under the gitignored /.backups dir. Only non-secret metadata is stored here —
+// never the profile data, never the key. createdAt doubles as the backup
+// watermark (the schedule is derived purely from the latest row's age).
+model ProfileBackup {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  label         String?
+  trigger       String   @default("manual") // manual | scheduled | pre-restore
+  // sha256 of the canonical profile content (excludes timestamps) — dedupe key.
+  contentHash   String
+  entryCount    Int
+  noteCount     Int
+  sensitiveCount Int     @default(0)
+  byteSize      Int      // size of the encrypted blob on disk
+  algo          String   @default("aes-256-gcm")
+  // Relative path of the envelope file under /.backups (never an absolute path).
+  filePath      String
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+  @@index([userId, contentHash])
+  @@index([profileId, contentHash])
+}
