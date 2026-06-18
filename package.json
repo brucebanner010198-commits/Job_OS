@@ -1,7 +1,8 @@
 {
   "name": "job-os",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "license": "SEE LICENSE IN LICENSE",
   "description": "Job OS: an AI job-search operating system",
   "scripts": {
     "postinstall": "prisma generate",
