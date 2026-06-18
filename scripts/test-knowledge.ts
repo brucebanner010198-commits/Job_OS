@@ -4,11 +4,14 @@
  */
 import { cosineSimilarity } from "@/lib/ai/embeddings";
 import { db } from "@/lib/db";
-import { listChunks } from "@/lib/knowledge/index";
+import { indexUserKnowledge, listChunks } from "@/lib/knowledge/index";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import type { KnowledgeChunk } from "@/lib/knowledge/types";
-import { createProfile, deleteProfile, ensureDefaultProfile } from "@/lib/profiles/service";
+import { saveNote } from "@/lib/profile/service";
+import { createProfile, deleteProfile } from "@/lib/profiles/service";
 import { getPrimaryUser } from "@/lib/user";
+
+const ROUNDTRIP_MARKER = "ZephyrKV roundtrip marker distributed systems Rust";
 
 let passed = 0;
 let failed = 0;
@@ -55,52 +58,62 @@ async function main(): Promise<void> {
     console.log("\nknowledge - DB integration:");
 
     const user = await getPrimaryUser();
-    const profile = await ensureDefaultProfile(user.id);
+    const profile = await createProfile(user.id, `KnMain-${Date.now()}`);
+    const other = await createProfile(user.id, `KnOther-${Date.now()}`);
     const scope = { userId: user.id, profileId: profile.id };
-    const other = await createProfile(user.id, `KnTest-${Date.now()}`);
-    const cacheKey = `kn:job:test-${Date.now()}:deadbeef`;
-    const chunkId = `${profile.id}_${cacheKey}`.slice(0, 120);
+    const otherScope = { userId: user.id, profileId: other.id };
 
     try {
-      await db.knowledgeChunk.upsert({
-        where: { profileId_cacheKey: { profileId: profile.id, cacheKey } },
-        create: {
-          id: chunkId,
-          userId: user.id,
-          profileId: profile.id,
-          sourceType: "job",
-          sourceId: "test-job",
-          text: "Rust systems engineer distributed databases",
-          cacheKey,
-        },
-        update: { text: "Rust systems engineer distributed databases" },
-      });
+      await saveNote(
+        scope,
+        `test-knowledge ${ROUNDTRIP_MARKER}`,
+        ROUNDTRIP_MARKER,
+        "dictation",
+      );
+
+      const indexed = await indexUserKnowledge(scope);
+      check("indexUserKnowledge indexes profile note", indexed.chunks > 0);
 
       const listed = await listChunks(scope);
       check(
-        "listChunks returns upserted chunk",
-        listed.some((c) => c.cacheKey === cacheKey),
+        "listChunks returns indexed chunk",
+        listed.some((c) => c.text.includes("ZephyrKV")),
       );
 
-      const otherScope = { userId: user.id, profileId: other.id };
+      const otherIndexed = await indexUserKnowledge(otherScope);
+      check("other profile index is empty without data", otherIndexed.chunks === 0);
+
       const otherListed = await listChunks(otherScope);
       check(
         "listChunks isolates by profileId",
-        !otherListed.some((c) => c.cacheKey === cacheKey),
+        !otherListed.some((c) => c.text.includes("ZephyrKV")),
       );
 
       const retrieved = await retrieveKnowledge(scope, {
-        query: "Rust distributed databases",
-        topK: 3,
+        query: "ZephyrKV distributed Rust",
+        topK: 5,
       });
       check(
-        "retrieveKnowledge lexical fallback ranks chunk",
-        retrieved.some((c) => c.cacheKey === cacheKey && c.score > 0),
+        "retrieveKnowledge index→retrieve round-trip",
+        retrieved.some((c) => c.text.includes("ZephyrKV") && c.score > 0),
+      );
+
+      const otherRetrieved = await retrieveKnowledge(otherScope, {
+        query: "ZephyrKV distributed Rust",
+        topK: 5,
+      });
+      check(
+        "retrieveKnowledge isolates by profileId",
+        !otherRetrieved.some((c) => c.text.includes("ZephyrKV")),
       );
     } finally {
-      await db.knowledgeChunk.deleteMany({
-        where: { profileId: { in: [profile.id, other.id] }, cacheKey },
+      await db.profileNote.deleteMany({
+        where: { profileId: profile.id, rawText: { contains: "test-knowledge" } },
       });
+      await db.knowledgeChunk.deleteMany({
+        where: { profileId: { in: [profile.id, other.id] } },
+      });
+      await deleteProfile(user.id, profile.id);
       await deleteProfile(user.id, other.id);
     }
   }

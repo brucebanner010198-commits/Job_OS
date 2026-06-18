@@ -3,8 +3,14 @@
  * Run: npm run test:autopilot
  */
 import { mayAutoSubmit, mustStopAtReview } from "@/lib/autopilot/policy";
-import { discoveryQueryForUser } from "@/lib/autopilot/orchestrator";
+import {
+  discoveryQueryForUser,
+  runAutopilotCycle,
+} from "@/lib/autopilot/orchestrator";
 import { createOAuthState, verifyOAuthState } from "@/lib/gmail/oauth-state";
+import { db } from "@/lib/db";
+import { createProfile, deleteProfile } from "@/lib/profiles/service";
+import { getPrimaryUser } from "@/lib/user";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -18,6 +24,16 @@ function check(name: string, cond: boolean): void {
   } else {
     failed++;
     console.error(`  ✗ ${name}`);
+  }
+}
+
+async function dbPing(): Promise<boolean> {
+  if (!process.env.DATABASE_URL?.trim()) return false;
+  try {
+    await db.$queryRaw`SELECT 1`;
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -61,6 +77,34 @@ async function main(): Promise<void> {
   const verified = verifyOAuthState(state);
   check("oauth state verifies for profile", verified?.profileId === "profile-abc");
   check("tampered oauth state rejected", verifyOAuthState(state.slice(0, -1)) === null);
+
+  const dbAvailable = await dbPing();
+  if (!dbAvailable) {
+    console.log("\nautopilot - DB integration: skipped (no DATABASE_URL)");
+  } else {
+    console.log("\nautopilot - DB integration (fixtures):");
+
+    const prevFixtures = process.env.JOBS_USE_FIXTURES;
+    process.env.JOBS_USE_FIXTURES = "1";
+
+    const user = await getPrimaryUser();
+    const profile = await createProfile(user.id, `AutopilotTest-${Date.now()}`);
+    const scope = { userId: user.id, profileId: profile.id };
+
+    try {
+      const result = await runAutopilotCycle(scope);
+      check("runAutopilotCycle retains fixture jobs", result.discovered.kept > 0);
+      check("runAutopilotCycle briefs top jobs", result.briefed > 0);
+      check(
+        "runAutopilotCycle details mention brief ensured",
+        result.details.some((d) => d.startsWith("brief ensured:")),
+      );
+    } finally {
+      await deleteProfile(user.id, profile.id);
+      if (prevFixtures === undefined) delete process.env.JOBS_USE_FIXTURES;
+      else process.env.JOBS_USE_FIXTURES = prevFixtures;
+    }
+  }
 
   console.log(`\nautopilot ${passed}/${passed + failed}\n`);
   if (failed > 0) process.exit(1);
