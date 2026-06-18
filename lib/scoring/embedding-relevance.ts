@@ -33,6 +33,14 @@ function vectorLiteral(vec: number[]): string {
   return `[${vec.join(",")}]`;
 }
 
+function parseVectorRaw(raw: string): number[] | null {
+  const trimmed = raw.trim();
+  const parsed = trimmed.startsWith("[")
+    ? (JSON.parse(trimmed) as number[])
+    : trimmed.split(",").map(Number);
+  return parsed.length > 0 && !parsed.some(Number.isNaN) ? parsed : null;
+}
+
 /** Ensure pgvector extension exists (idempotent). */
 export async function ensureVectorExtension(): Promise<void> {
   try {
@@ -42,19 +50,34 @@ export async function ensureVectorExtension(): Promise<void> {
   }
 }
 
-/** Ensure the TextEmbedding cache table exists (idempotent). */
+/** Tables are managed by Prisma migrations; only ensure pgvector extension. */
 export async function ensureEmbeddingTable(): Promise<void> {
   await ensureVectorExtension();
-  await db.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "TextEmbedding" (
-      id TEXT PRIMARY KEY,
-      "userId" TEXT NOT NULL,
-      "cacheKey" TEXT NOT NULL,
-      embedding vector(${EMBEDDING_DIM}) NOT NULL,
-      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE("userId", "cacheKey")
-    )
-  `);
+}
+
+/** Persist an embedding vector (pgvector column requires raw SQL). */
+export async function saveEmbedding(
+  scope: AppScope,
+  id: string,
+  key: string,
+  vec: number[],
+): Promise<void> {
+  const lit = vectorLiteral(vec);
+  try {
+    await db.$executeRawUnsafe(
+      `INSERT INTO "TextEmbedding" (id, "userId", "profileId", "cacheKey", embedding, "updatedAt")
+       VALUES ($1, $2, $3, $4, $5::vector, NOW())
+       ON CONFLICT ("userId", "cacheKey")
+       DO UPDATE SET embedding = EXCLUDED.embedding, "profileId" = EXCLUDED."profileId", "updatedAt" = NOW()`,
+      id,
+      scope.userId,
+      scope.profileId,
+      key,
+      lit,
+    );
+  } catch {
+    /* cache write failure is non-fatal */
+  }
 }
 
 /** Load a cached embedding vector for (scope, text). */
@@ -72,11 +95,28 @@ async function loadCached(
     );
     const raw = rows[0]?.embedding;
     if (!raw) return null;
-    const trimmed = raw.trim();
-    const parsed = trimmed.startsWith("[")
-      ? (JSON.parse(trimmed) as number[])
-      : trimmed.split(",").map(Number);
-    return parsed.length > 0 && !parsed.some(Number.isNaN) ? parsed : null;
+    return parseVectorRaw(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** Load embedding by exact cache key (used by knowledge retrieval). */
+export async function loadEmbeddingByCacheKey(
+  scope: AppScope,
+  key: string,
+): Promise<number[] | null> {
+  try {
+    const rows = await db.$queryRawUnsafe<{ embedding: string }[]>(
+      `SELECT embedding::text AS embedding FROM "TextEmbedding"
+       WHERE "userId" = $1 AND "profileId" = $2 AND "cacheKey" = $3 LIMIT 1`,
+      scope.userId,
+      scope.profileId,
+      key,
+    );
+    const raw = rows[0]?.embedding;
+    if (!raw) return null;
+    return parseVectorRaw(raw);
   } catch {
     return null;
   }
@@ -90,21 +130,7 @@ async function saveCached(
 ): Promise<void> {
   const key = cacheKey(scope, text);
   const id = `${scope.profileId}_${key.slice(0, 16)}`;
-  const lit = vectorLiteral(vec);
-  try {
-    await db.$executeRawUnsafe(
-      `INSERT INTO "TextEmbedding" (id, "userId", "cacheKey", embedding, "updatedAt")
-       VALUES ($1, $2, $3, $4::vector, NOW())
-       ON CONFLICT ("userId", "cacheKey")
-       DO UPDATE SET embedding = EXCLUDED.embedding, "updatedAt" = NOW()`,
-      id,
-      scope.userId,
-      key,
-      lit,
-    );
-  } catch {
-    /* cache write failure is non-fatal */
-  }
+  await saveEmbedding(scope, id, key, vec);
 }
 
 /**

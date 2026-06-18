@@ -1,11 +1,11 @@
 /**
  * Knowledge Notebook - top-k semantic retrieval for apply + interview grounding.
  */
-import { db } from "@/lib/db";
 import { embedText, embeddingsEnabled } from "@/lib/ai/embeddings";
 import { cosineSimilarity } from "@/lib/ai/embeddings";
 import { knowledgeNotebookEnabled } from "@/lib/integrations/registry";
 import { ensureKnowledgeTable, listChunks } from "@/lib/knowledge/index";
+import { loadEmbeddingByCacheKey } from "@/lib/scoring/embedding-relevance";
 import type { AppScope } from "@/lib/profiles/types";
 import type { RetrievedChunk, RetrieveQuery } from "@/lib/knowledge/types";
 
@@ -47,15 +47,11 @@ export async function retrieveKnowledge(
   if (queryVec) {
     const scored: RetrievedChunk[] = [];
     for (const chunk of chunks) {
-      const rows = await db.$queryRawUnsafe<{ embedding: string }[]>(
-        `SELECT embedding::text AS embedding FROM "TextEmbedding"
-         WHERE "userId" = $1 AND "cacheKey" = $2 LIMIT 1`,
-        scope.userId,
+      const vec = await loadEmbeddingByCacheKey(
+        scope,
         `${scope.profileId}:${chunk.cacheKey}`,
       );
-      const raw = rows[0]?.embedding;
-      if (!raw) continue;
-      const vec = JSON.parse(raw.trim().startsWith("[") ? raw : `[${raw}]`) as number[];
+      if (!vec) continue;
       scored.push({
         ...chunk,
         score: cosineSimilarity(queryVec, vec),

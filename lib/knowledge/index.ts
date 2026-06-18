@@ -4,7 +4,7 @@
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { embedText, embeddingsEnabled } from "@/lib/ai/embeddings";
-import { ensureEmbeddingTable } from "@/lib/scoring/embedding-relevance";
+import { ensureVectorExtension, saveEmbedding } from "@/lib/scoring/embedding-relevance";
 import { knowledgeNotebookEnabled } from "@/lib/integrations/registry";
 import type { AppScope } from "@/lib/profiles/types";
 import { scopeWhere } from "@/lib/profiles/scope";
@@ -19,21 +19,9 @@ function chunkCacheKey(
   return `kn:${sourceType}:${sourceId}:${hash}`;
 }
 
+/** Ensure pgvector is available; tables are managed by Prisma migrations. */
 export async function ensureKnowledgeTable(): Promise<void> {
-  await ensureEmbeddingTable();
-  await db.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "KnowledgeChunk" (
-      id TEXT PRIMARY KEY,
-      "userId" TEXT NOT NULL,
-      "profileId" TEXT NOT NULL,
-      "sourceType" TEXT NOT NULL,
-      "sourceId" TEXT,
-      text TEXT NOT NULL,
-      "cacheKey" TEXT NOT NULL,
-      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE("profileId", "cacheKey")
-    )
-  `);
+  await ensureVectorExtension();
 }
 
 async function upsertChunk(
@@ -47,34 +35,27 @@ async function upsertChunk(
   const cacheKey = chunkCacheKey(sourceType, sourceId, trimmed);
   const id = `${scope.profileId}_${cacheKey}`.slice(0, 120);
 
-  await db.$executeRawUnsafe(
-    `INSERT INTO "KnowledgeChunk" (id, "userId", "profileId", "sourceType", "sourceId", text, "cacheKey", "updatedAt")
-     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-     ON CONFLICT ("profileId", "cacheKey")
-     DO UPDATE SET text = EXCLUDED.text, "updatedAt" = NOW()`,
-    id,
-    scope.userId,
-    scope.profileId,
-    sourceType,
-    sourceId,
-    trimmed,
-    cacheKey,
-  );
+  await db.knowledgeChunk.upsert({
+    where: {
+      profileId_cacheKey: { profileId: scope.profileId, cacheKey },
+    },
+    create: {
+      id,
+      userId: scope.userId,
+      profileId: scope.profileId,
+      sourceType,
+      sourceId,
+      text: trimmed,
+      cacheKey,
+    },
+    update: { text: trimmed },
+  });
 
   const vec = await embedText(trimmed);
   if (!vec) return;
-  const lit = `[${vec.join(",")}]`;
+  const embCacheKey = `${scope.profileId}:${cacheKey}`;
   const embId = `${scope.profileId}_${cacheKey.slice(0, 32)}`;
-  await db.$executeRawUnsafe(
-    `INSERT INTO "TextEmbedding" (id, "userId", "cacheKey", embedding, "updatedAt")
-     VALUES ($1, $2, $3, $4::vector, NOW())
-     ON CONFLICT ("userId", "cacheKey")
-     DO UPDATE SET embedding = EXCLUDED.embedding, "updatedAt" = NOW()`,
-    embId,
-    scope.userId,
-    `${scope.profileId}:${cacheKey}`,
-    lit,
-  );
+  await saveEmbedding(scope, embId, embCacheKey, vec);
 }
 
 /** Re-index all Tier-1 knowledge sources for a profile. */
@@ -159,14 +140,18 @@ export async function indexUserKnowledge(
 
 export async function listChunks(scope: AppScope): Promise<KnowledgeChunk[]> {
   await ensureKnowledgeTable();
-  const rows = await db.$queryRawUnsafe<
-    { id: string; sourceType: string; sourceId: string | null; text: string; cacheKey: string }[]
-  >(
-    `SELECT id, "sourceType", "sourceId", text, "cacheKey"
-     FROM "KnowledgeChunk" WHERE "userId" = $1 AND "profileId" = $2 ORDER BY "updatedAt" DESC LIMIT 500`,
-    scope.userId,
-    scope.profileId,
-  );
+  const rows = await db.knowledgeChunk.findMany({
+    where: scopeWhere(scope),
+    orderBy: { updatedAt: "desc" },
+    take: 500,
+    select: {
+      id: true,
+      sourceType: true,
+      sourceId: true,
+      text: true,
+      cacheKey: true,
+    },
+  });
   return rows.map((r) => ({
     id: r.id,
     sourceType: r.sourceType as KnowledgeSourceType,

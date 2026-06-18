@@ -40,6 +40,8 @@ model User {
   scheduledRuns     ScheduledRun[]
   profileBackups    ProfileBackup[]
   profiles          Profile[]
+  knowledgeChunks   KnowledgeChunk[]
+  textEmbeddings    TextEmbedding[]
 }
 
 // Named identity within one install (e.g. "Sam", "Alex"). Career data is scoped
@@ -74,6 +76,8 @@ model Profile {
   voiceUsage         VoiceUsage[]
   scheduledRuns      ScheduledRun[]
   profileBackups     ProfileBackup[]
+  knowledgeChunks    KnowledgeChunk[]
+  textEmbeddings     TextEmbedding[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -775,4 +779,38 @@ model ProfileBackup {
   @@index([profileId, createdAt])
   @@index([userId, contentHash])
   @@index([profileId, contentHash])
+}
+
+// ─── Knowledge notebook (RAG chunks + pgvector embeddings) ───────────────
+// Profile-scoped chunks indexed from profile entries, briefs, jobs, etc.
+model KnowledgeChunk {
+  id         String   @id
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId  String
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sourceType String
+  sourceId   String?
+  text       String
+  cacheKey   String
+  updatedAt  DateTime @updatedAt
+
+  @@unique([profileId, cacheKey])
+  @@index([userId, profileId])
+  @@index([profileId, updatedAt])
+}
+
+// pgvector embedding cache for semantic scoring and knowledge retrieval.
+model TextEmbedding {
+  id        String                      @id
+  userId    String
+  user      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile                     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  cacheKey  String
+  embedding Unsupported("vector(1536)")
+  updatedAt DateTime                    @updatedAt
+
+  @@unique([userId, cacheKey])
+  @@index([profileId, cacheKey])
 }
