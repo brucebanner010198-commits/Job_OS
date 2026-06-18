@@ -13,6 +13,10 @@ import { bulletFrameworkPromptBlock } from "./bullet-frameworks";
 import { scoreScreening, type ScreeningScore } from "./screening-score";
 import { applySkimLayout, type SkimLayoutResult } from "./skim-layout";
 import { type ProfileFact, flattenFact } from "@/lib/profile/types";
+import {
+  sanitizePromptText,
+  wrapJobDescriptionForPrompt,
+} from "@/lib/security/prompt-sanitize";
 
 export type { ProfileFact };
 
@@ -73,25 +77,27 @@ Return ONLY a JSON object matching the required schema.`;
 export async function tailorResume(input: TailorInput): Promise<TailorResult> {
   const facts = input.facts.filter((f) => !f.sensitive);
   const seniority = input.seniority ?? "mid";
+  const jobTitle = sanitizePromptText(input.jobTitle);
+  const company = sanitizePromptText(input.company);
   const pageTarget = ATS.pageTargetBySeniority[seniority];
 
   const user = `MASTER PROFILE (id-tagged - cite these ids as "sources"):
 ${factListing(facts)}
 
-TARGET ROLE: ${input.jobTitle} at ${input.company}
+TARGET ROLE: ${jobTitle} at ${company}
 CANDIDATE CONTACT: ${JSON.stringify(input.contact)}
 LENGTH TARGET: about ${pageTarget} page(s).
 
 JOB DESCRIPTION:
-${input.jobDescription}
+${wrapJobDescriptionForPrompt(input.jobDescription)}
 
-Produce the tailored, fully-sourced resume JSON now. Set forJobTitle="${input.jobTitle}", forCompany="${input.company}", and put the candidate name in "name" and the target role in "headline".`;
+Produce the tailored, fully-sourced resume JSON now. Set forJobTitle="${jobTitle}", forCompany="${company}", and put the candidate name in "name" and the target role in "headline".`;
 
   const { value: raw } = await chatJson(tailoredResumeSchema, {
     task: "tailorResume",
     temperature: 0.2,
     messages: [
-      { role: "system", content: buildSystemPrompt(seniority, input.jobTitle) },
+      { role: "system", content: buildSystemPrompt(seniority, jobTitle) },
       { role: "user", content: user },
     ],
   });

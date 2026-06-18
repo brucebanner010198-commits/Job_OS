@@ -3,6 +3,7 @@
  */
 import { chat } from "@/lib/ai/openrouter";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
+import { sanitizePromptText } from "@/lib/security/prompt-sanitize";
 import type { PreparedField } from "@/lib/apply/types";
 import type { AppScope } from "@/lib/profiles/types";
 
@@ -27,10 +28,15 @@ export interface EssayFieldResult {
 export async function generateEssayField(
   req: EssayFieldRequest,
 ): Promise<EssayFieldResult> {
+  const fieldLabel = sanitizePromptText(req.fieldLabel);
+  const company = sanitizePromptText(req.company);
+  const jobTitle = sanitizePromptText(req.jobTitle);
+  const jobDescription = sanitizePromptText(req.jobDescription);
+
   const chunks = await retrieveKnowledge(req.scope, {
-    query: req.fieldLabel,
-    companyName: req.company,
-    jobDescription: req.jobDescription,
+    query: fieldLabel,
+    companyName: company,
+    jobDescription,
     topK: 6,
   });
 
@@ -53,8 +59,8 @@ export async function generateEssayField(
       {
         role: "user",
         content:
-          `Question: ${req.fieldLabel}\n` +
-          `Role: ${req.jobTitle} at ${req.company}\n\n` +
+          `Question: ${fieldLabel}\n` +
+          `Role: ${jobTitle} at ${company}\n\n` +
           `Profile facts:\n${context}`,
       },
     ],

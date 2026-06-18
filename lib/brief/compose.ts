@@ -30,6 +30,7 @@ import {
 } from "@/lib/brief/types";
 import { entails } from "@/lib/brief/entailment";
 import { classifyFact, isVolatile, isStale } from "@/lib/brief/volatile";
+import { sanitizePromptText } from "@/lib/security/prompt-sanitize";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -85,12 +86,23 @@ export function composeBrief(input: {
 }): CompanyBriefData {
   const { company, candidates, sources, now } = input;
 
+  const safeSources = sources.map((s) => ({
+    ...s,
+    text: sanitizePromptText(s.text),
+  }));
+  const safeCandidates = candidates.map((c) => ({
+    ...c,
+    text: sanitizePromptText(c.text),
+  }));
+
   const claims: Claim[] = [];
   const refused: { text: string; reason: string }[] = [];
 
-  for (const candidate of candidates) {
+  for (const candidate of safeCandidates) {
     // Step 1: find all sources that entail this claim
-    const entailingSources = sources.filter((s) => entails(candidate.text, s.text));
+    const entailingSources = safeSources.filter((s) =>
+      entails(candidate.text, s.text),
+    );
 
     // Step 2: classify category (use candidate.category if provided, verify with heuristic)
     // We trust the caller-supplied category (CandidateClaim has it), so use it directly.
