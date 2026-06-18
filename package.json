@@ -4,6 +4,7 @@
   "private": true,
   "description": "Job OS: an AI job-search operating system",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev --webpack",
     "build": "BUILD=1 next build",
     "build:standalone": "bash scripts/build-standalone.sh",
