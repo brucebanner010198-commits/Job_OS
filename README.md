@@ -73,6 +73,14 @@ npm run test:e2e-journey
 - **Apply**: Simulated driver (default) or opt-in Playwright (`APPLY_DRIVER=playwright`)
 - **Autopilot**: Discover → brief → prepare → auto-submit **AUTONOMOUS** routes only
 
+### Documentation
+
+| Doc | Contents |
+|-----|----------|
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Domain map, adapter seams, fixture vs live matrix |
+| [docs/backend-api.md](./docs/backend-api.md) | API routes, server actions, auth & error contracts |
+| [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Docker, env checklist, LAN security, `.secrets` hygiene |
+
 ## Scripts
 
 | Command | Description |
