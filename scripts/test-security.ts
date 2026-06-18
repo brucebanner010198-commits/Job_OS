@@ -11,15 +11,23 @@ import {
   isLocalhostHost,
   isProtectedApiPath,
   readProvidedTokenFromHeaders,
+  readProvidedTokenFromNextRequest,
   verifyAccessToken,
 } from "@/lib/auth/access";
 import { allIntegrationStatuses } from "@/lib/integrations/registry";
 import { scopeWhere } from "@/lib/profiles/scope";
+import { evaluateProxyGate } from "@/lib/security/proxy-gate";
+import {
+  checkRateLimit,
+  resetRateLimitsForTests,
+  shouldRateLimitRequest,
+} from "@/lib/security/rate-limit";
 import { isPublicHttpUrl } from "@/lib/security/url";
 import {
   requireAccessForMutation,
   requireAccessForRead,
 } from "@/lib/auth/require-access";
+import { NextRequest } from "next/server";
 
 let passed = 0;
 let failed = 0;
@@ -138,6 +146,147 @@ async function main(): Promise<void> {
       new Headers({ cookie: `${ACCESS_TOKEN_COOKIE}=cookie-token-value` }),
     ) === "cookie-token-value",
   );
+
+  console.log("\nsecurity - proxy LAN auth gate:");
+
+  resetRateLimitsForTests();
+  const lanHost = "192.168.1.10:3000";
+  const token = "test-access-token-xyz";
+
+  check(
+    "loopback bypasses gate on protected path",
+    evaluateProxyGate({
+      pathname: "/api/backup/export",
+      host: "127.0.0.1:3000",
+      providedToken: null,
+    }).kind === "allow",
+  );
+  check(
+    "missing Host header is not treated as loopback (401)",
+    evaluateProxyGate({
+      pathname: "/api/integrations/status",
+      host: null,
+      providedToken: null,
+    }).kind === "unauthorized",
+  );
+  check(
+    "LAN protected path without token returns 401",
+    evaluateProxyGate({
+      pathname: "/api/integrations/status",
+      host: lanHost,
+      providedToken: null,
+    }).kind === "unauthorized",
+  );
+  check(
+    "LAN protected path with Bearer token allows",
+    evaluateProxyGate({
+      pathname: "/api/apply/session/abc",
+      host: lanHost,
+      providedToken: token,
+    }).kind === "allow",
+  );
+  check(
+    "LAN protected path with access cookie allows",
+    evaluateProxyGate({
+      pathname: "/api/gmail/sync",
+      host: lanHost,
+      providedToken: token,
+    }).kind === "allow",
+  );
+  check(
+    "valid Bearer on LAN persists httpOnly cookie when absent",
+    evaluateProxyGate({
+      pathname: "/api/backup/export",
+      host: lanHost,
+      providedToken: token,
+      existingCookieToken: null,
+    }).persistCookie === token,
+  );
+  check(
+    "valid Bearer skips cookie write when cookie already matches",
+    evaluateProxyGate({
+      pathname: "/api/backup/export",
+      host: lanHost,
+      providedToken: token,
+      existingCookieToken: token,
+    }).persistCookie === undefined,
+  );
+  check(
+    "Gmail OAuth auth path stays exempt on LAN",
+    evaluateProxyGate({
+      pathname: "/api/gmail/auth",
+      host: lanHost,
+      providedToken: null,
+    }).kind === "allow",
+  );
+  check(
+    "non-protected path allows on LAN without token",
+    evaluateProxyGate({
+      pathname: "/api/health",
+      host: lanHost,
+      providedToken: null,
+    }).kind === "allow",
+  );
+
+  const bearerReq = new NextRequest("http://192.168.1.10:3000/api/backup/export", {
+    headers: {
+      host: lanHost,
+      authorization: `Bearer ${token}`,
+    },
+  });
+  check(
+    "readProvidedTokenFromNextRequest reads Bearer from middleware request",
+    readProvidedTokenFromNextRequest(bearerReq) === token,
+  );
+
+  const cookieReq = new NextRequest("http://192.168.1.10:3000/api/integrations/status", {
+    headers: {
+      host: lanHost,
+      cookie: `${ACCESS_TOKEN_COOKIE}=${token}`,
+    },
+  });
+  check(
+    "readProvidedTokenFromNextRequest reads access cookie from middleware request",
+    readProvidedTokenFromNextRequest(cookieReq) === token,
+  );
+
+  console.log("\nsecurity - LAN rate limit:");
+
+  resetRateLimitsForTests();
+  check(
+    "protected LAN paths are rate-limit candidates",
+    shouldRateLimitRequest("/api/integrations/status", lanHost) &&
+      !shouldRateLimitRequest("/api/integrations/status", "127.0.0.1:3000"),
+  );
+
+  const rateIp = "10.0.0.42";
+  let allowed = 0;
+  for (let i = 0; i < 100; i++) {
+    if (checkRateLimit(rateIp).allowed) allowed++;
+  }
+  check("allows 100 requests per IP per minute", allowed === 100);
+  check(
+    "blocks the 101st request from the same IP",
+    !checkRateLimit(rateIp).allowed,
+  );
+  check(
+    "rate limit returns retry-after seconds",
+    (checkRateLimit(rateIp).retryAfterSec ?? 0) >= 1,
+  );
+  check(
+    "different IPs have independent buckets",
+    checkRateLimit("10.0.0.99").allowed,
+  );
+  check(
+    "LAN gate returns rate_limited after quota exhausted",
+    evaluateProxyGate({
+      pathname: "/api/backup/export",
+      host: lanHost,
+      providedToken: token,
+      clientIp: rateIp,
+    }).kind === "rate_limited",
+  );
+  resetRateLimitsForTests();
 
   if (prevToken === undefined) delete process.env.JOB_OS_ACCESS_TOKEN;
   else process.env.JOB_OS_ACCESS_TOKEN = prevToken;
