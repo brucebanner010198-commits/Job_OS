@@ -67,7 +67,7 @@ npm run test:e2e-journey
 
 ## Architecture
 
-- **Next.js 15** app with server actions
+- **Next.js 16** app with server actions
 - **Postgres + pgvector** via Prisma
 - **Secrets**: Integrations portal → `.secrets/keys.json` → `.env` fallback
 - **Apply**: Simulated driver (default) or opt-in Playwright (`APPLY_DRIVER=playwright`)
