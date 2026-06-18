@@ -78,6 +78,7 @@ model Profile {
   profileBackups     ProfileBackup[]
   knowledgeChunks    KnowledgeChunk[]
   textEmbeddings     TextEmbedding[]
+  applySessions      ApplySession[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -297,9 +298,30 @@ model Application {
   followUps       FollowUp[]
   studyGuides       StudyGuide[]
   interviewSessions InterviewSession[]
+  applySession    ApplySession?
 
   @@index([userId, status])
   @@index([profileId, status])
+}
+
+// Cooperative Playwright session control (Phase 5 / 3A) — one row per application.
+enum SessionControlMode {
+  AI
+  PAUSED
+  HANDOFF
+}
+
+model ApplySession {
+  applicationId   String             @id
+  application     Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  profileId       String
+  profile         Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  mode            SessionControlMode @default(AI)
+  applyState      ApplyState         @default(PREPARING)
+  captchaDetected Boolean            @default(false)
+  updatedAt       DateTime           @updatedAt
+
+  @@index([profileId, updatedAt])
 }
 
 // ─── Application answers (confirmed once, plan §C) ────────────────────────

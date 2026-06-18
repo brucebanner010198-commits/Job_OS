@@ -13,7 +13,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const { scope } = await getAppContext();
-  const session = getSession(scope, id);
+  const session = await getSession(scope, id);
   if (!session) {
     return NextResponse.json({ session: null });
   }
@@ -30,15 +30,15 @@ export async function POST(
 
   switch (body.action) {
     case "take-control": {
-      const session = takeControl(scope, id);
+      const session = await takeControl(scope, id);
       return NextResponse.json({ ok: true, session });
     }
     case "pause-captcha": {
-      const session = pauseForCaptcha(scope, id);
+      const session = await pauseForCaptcha(scope, id);
       return NextResponse.json({ ok: true, session });
     }
     case "resume-ai": {
-      const session = resumeAi(scope, id);
+      const session = await resumeAi(scope, id);
       return NextResponse.json({ ok: true, session });
     }
     default:
