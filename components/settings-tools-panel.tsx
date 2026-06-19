@@ -21,7 +21,13 @@ import {
   BookOpen,
   Building2,
 } from "lucide-react";
+import { LiveStatusBadge } from "@/components/live-status-badge";
+import { MODULES, type LiveAdapterStatus } from "@/lib/modules";
 import { cn } from "@/lib/utils";
+
+const LIVE_BY_HREF = Object.fromEntries(
+  MODULES.filter((m) => m.href).map((m) => [m.href!, m.liveStatus]),
+) as Record<string, LiveAdapterStatus>;
 
 const TOOL_LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -87,8 +93,11 @@ export function SettingsToolsPanel({
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 flex-1">{label}</span>
+                {LIVE_BY_HREF[href] && (
+                  <LiveStatusBadge status={LIVE_BY_HREF[href]} />
+                )}
               </Link>
             );
           })}
@@ -110,8 +119,11 @@ export function SettingsToolsPanel({
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 flex-1">{label}</span>
+                {LIVE_BY_HREF[href] && (
+                  <LiveStatusBadge status={LIVE_BY_HREF[href]} />
+                )}
               </Link>
             );
           })}

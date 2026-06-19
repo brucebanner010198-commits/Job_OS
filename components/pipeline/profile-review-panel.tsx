@@ -107,7 +107,8 @@ export function ProfileReviewPanel({
         </div>
         <h2 className="text-lg font-medium">Profile saved</h2>
         <p className="text-sm text-muted-foreground">
-          Your master profile and career goals are ready. Autopilot can start searching for roles.
+          Your master profile and career goals are ready. Autopilot is starting job
+          discovery and will prepare applications for your review.
         </p>
         {skipCoaching && (
           <p className="flex items-center justify-center gap-1 text-sm text-[var(--warning)]">

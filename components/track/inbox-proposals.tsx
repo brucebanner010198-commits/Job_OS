@@ -90,10 +90,12 @@ function ProposalCard({
   proposal,
   readOnly,
   onError,
+  compact = false,
 }: {
   proposal: ProposalView;
   readOnly: boolean;
   onError: (message: string) => void;
+  compact?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -123,7 +125,8 @@ function ProposalCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-4 transition-opacity",
+        "rounded-xl border border-border bg-card transition-opacity",
+        compact ? "p-3" : "p-4",
         pending && "opacity-60",
       )}
     >
@@ -217,9 +220,11 @@ function ProposalCard({
 export function InboxProposals({
   proposals,
   readOnly,
+  compact = false,
 }: {
   proposals: ProposalView[];
   readOnly: boolean;
+  compact?: boolean;
 }) {
   const [syncing, startSync] = useTransition();
   const router = useRouter();
@@ -236,11 +241,13 @@ export function InboxProposals({
   }
 
   return (
-    <section className="mt-6">
+    <section className={compact ? "" : "mt-6"}>
       <ActionFeedback message={feedback} onDismiss={dismiss} />
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-medium">Inbox proposals</h2>
+          <h2 className={compact ? "text-sm font-semibold" : "font-medium"}>
+            Inbox proposals
+          </h2>
           <p className="text-xs text-muted-foreground">
             Gmail-detected changes waiting for your confirmation.
           </p>
@@ -263,13 +270,14 @@ export function InboxProposals({
           No pending proposals. Sync your inbox to check for updates.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className={compact ? "space-y-2" : "space-y-3"}>
           {proposals.map((proposal) => (
             <ProposalCard
               key={proposal.id}
               proposal={proposal}
               readOnly={readOnly}
               onError={setFeedback}
+              compact={compact}
             />
           ))}
         </div>

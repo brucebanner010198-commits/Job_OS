@@ -41,7 +41,6 @@ const STATUS_LABEL: Record<AppStatus, string> = {
   SKIPPED: "Skipped",
 };
 
-// Subtle distinct top accent per column.
 const COLUMN_ACCENT: Record<AppStatus, string> = {
   WARM_PATH: "border-t-accent",
   TO_APPLY: "border-t-muted-foreground/40",
@@ -51,8 +50,6 @@ const COLUMN_ACCENT: Record<AppStatus, string> = {
   REJECTED: "border-t-[var(--danger)]",
   SKIPPED: "border-t-border",
 };
-
-// --- App card -----------------------------------------------------------------
 
 function AppCard({
   app,
@@ -64,7 +61,6 @@ function AppCard({
   onMove: (appId: string, to: AppStatus) => void;
 }) {
   const [pending, startTransition] = useTransition();
-
   const others = BOARD_COLUMNS.filter((s) => s !== app.status);
 
   function move(to: AppStatus) {
@@ -79,13 +75,9 @@ function AppCard({
         pending && "opacity-60",
       )}
     >
-      <div className="truncate text-sm font-semibold text-foreground">
-        {app.company}
-      </div>
+      <div className="truncate text-sm font-semibold text-foreground">{app.company}</div>
       {app.jobTitle && (
-        <div className="truncate text-xs text-muted-foreground">
-          {app.jobTitle}
-        </div>
+        <div className="truncate text-xs text-muted-foreground">{app.jobTitle}</div>
       )}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -121,14 +113,81 @@ function AppCard({
   );
 }
 
-// --- Board --------------------------------------------------------------------
+export function TrackBoardColumn({
+  column,
+  readOnly,
+  onMove,
+  prominent = false,
+}: {
+  column: BoardColumnView;
+  readOnly: boolean;
+  onMove?: (appId: string, to: AppStatus) => void;
+  prominent?: boolean;
+}) {
+  const router = useRouter();
+  const { feedback, run, dismiss } = useActionFeedback();
+
+  function handleMove(appId: string, to: AppStatus) {
+    if (onMove) {
+      onMove(appId, to);
+      return;
+    }
+    if (readOnly) return;
+    void (async () => {
+      const result = await run(() => moveApplicationAction(appId, to));
+      if (result.ok) router.refresh();
+    })();
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-t-2 border-border bg-card",
+        COLUMN_ACCENT[column.status],
+        prominent && "shadow-sm ring-1 ring-primary/10",
+      )}
+    >
+      {!prominent && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            {column.title}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+            {column.apps.length}
+          </span>
+        </div>
+      )}
+      <div className={cn("space-y-2 px-3 pb-3", prominent && "pt-3")}>
+        {column.apps.length === 0 ? (
+          <p className="py-2 text-center text-[11px] text-muted-foreground/50">-</p>
+        ) : (
+          column.apps.map((app) => (
+            <AppCard
+              key={app.id}
+              app={app}
+              readOnly={readOnly}
+              onMove={handleMove}
+            />
+          ))
+        )}
+      </div>
+      {feedback && prominent && (
+        <div className="px-3 pb-3">
+          <ActionFeedback message={feedback} onDismiss={dismiss} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TrackBoard({
   board,
   readOnly,
+  title = "Pipeline",
 }: {
   board: BoardColumnView[];
   readOnly: boolean;
+  title?: string;
 }) {
   const router = useRouter();
   const { feedback, run, dismiss } = useActionFeedback();
@@ -141,43 +200,33 @@ export function TrackBoard({
     })();
   }
 
+  if (board.length === 0) return null;
+
   return (
     <section className="mt-6">
+      <div className="mb-3">
+        <h2 className="font-medium">{title}</h2>
+        <p className="text-xs text-muted-foreground">
+          Move cards between stages as your search progresses.
+        </p>
+      </div>
       <ActionFeedback message={feedback} onDismiss={dismiss} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-3",
+          board.length >= 5 && "sm:grid-cols-2 lg:grid-cols-5",
+          board.length === 4 && "sm:grid-cols-2 lg:grid-cols-4",
+          board.length === 3 && "sm:grid-cols-2 lg:grid-cols-3",
+          board.length <= 2 && "sm:grid-cols-2",
+        )}
+      >
         {board.map((col) => (
-          <div
+          <TrackBoardColumn
             key={col.status}
-            className={cn(
-              "rounded-xl border border-t-2 border-border bg-card",
-              COLUMN_ACCENT[col.status],
-            )}
-          >
-            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-              <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                {col.title}
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
-                {col.apps.length}
-              </span>
-            </div>
-            <div className="space-y-2 px-3 pb-3">
-              {col.apps.length === 0 ? (
-                <p className="py-2 text-center text-[11px] text-muted-foreground/50">
-                  -
-                </p>
-              ) : (
-                col.apps.map((app) => (
-                  <AppCard
-                    key={app.id}
-                    app={app}
-                    readOnly={readOnly}
-                    onMove={handleMove}
-                  />
-                ))
-              )}
-            </div>
-          </div>
+            column={col}
+            readOnly={readOnly}
+            onMove={handleMove}
+          />
         ))}
       </div>
     </section>

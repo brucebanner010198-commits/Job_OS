@@ -114,3 +114,5 @@ Never delete `.next` while `next dev` is still running — file locks can leave 
 ## Desktop (optional)
 
 Packaged Tauri build with macOS Keychain secrets — see `src-tauri/README.md`.
+
+**Platform priority:** local-first by default — primary target is a macOS desktop app (Tauri) with the same Next.js UI served locally; LAN web hosting is supported equally for the same workflow. LAN token entry UI is deferred.

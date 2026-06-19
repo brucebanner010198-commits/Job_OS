@@ -8,7 +8,9 @@ import { DbBanner } from "@/components/db-banner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProfileSwitcher } from "@/components/profile-switcher";
 import { PipelineRail } from "@/components/pipeline/pipeline-rail";
+import { AutopilotBanner } from "@/components/pipeline/autopilot-banner";
 import { SettingsToolsPanel } from "@/components/settings-tools-panel";
+import type { AutopilotBannerData } from "@/lib/autopilot/banner";
 import type { ProfileSummary } from "@/app/actions/profiles";
 import type { PipelineStageId } from "@/lib/pipeline/stages";
 
@@ -18,6 +20,7 @@ export function AppShell({
   activeProfile,
   homeStage,
   dbError,
+  autopilotBanner,
 }: {
   children: React.ReactNode;
   profiles: ProfileSummary[];
@@ -26,6 +29,7 @@ export function AppShell({
   homeStage?: PipelineStageId;
   /** When true, show database connectivity banner above page content. */
   dbError?: boolean;
+  autopilotBanner?: AutopilotBannerData | null;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -98,6 +102,7 @@ export function AppShell({
             <DbBanner />
           </div>
         )}
+        <AutopilotBanner data={autopilotBanner ?? null} />
         {children}
       </div>
     </div>

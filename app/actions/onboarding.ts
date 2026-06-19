@@ -9,6 +9,9 @@ import { addEntries, saveNote } from "@/lib/profile/service";
 import { nonSensitiveProfileText } from "@/lib/goals/service";
 import { upsertGoal } from "@/lib/goals/service";
 import { scheduleCareerRefresh } from "@/lib/career/trigger";
+import { scheduleSetupCatchup } from "@/lib/autopilot/triggers";
+import { isAutopilotEnabled } from "@/lib/autopilot/setup-trigger";
+import { getSetupStatus } from "@/lib/pipeline/setup-status";
 import {
   startCoachingSession,
   processCoachingTurn,
@@ -101,6 +104,7 @@ export interface CompleteOnboardingResult {
   entriesAdded: number;
   goalsSaved: boolean;
   setupPartial: boolean;
+  autopilotEnabled: boolean;
 }
 
 /**
@@ -115,6 +119,7 @@ export async function completeOnboardingAction(input: {
 }): Promise<CompleteOnboardingResult> {
   await requireAccessForMutation();
   const { scope } = await getAppContext();
+  const wasComplete = (await getSetupStatus(scope)).complete;
   const profileText = await nonSensitiveProfileText(scope);
 
   let profile: CompiledProfile;
@@ -185,19 +190,26 @@ export async function completeOnboardingAction(input: {
   const entriesAdded = await addEntries(scope, dbEntries);
   await upsertGoal(scope, goals, profile.goalsNote || null);
 
+  const nowComplete = (await getSetupStatus(scope)).complete;
+
   after(() => {
     scheduleCareerRefresh(scope);
+    if (!wasComplete && nowComplete) {
+      scheduleSetupCatchup(scope);
+    }
   });
 
   revalidatePath("/setup");
   revalidatePath("/master-resume");
   revalidatePath("/goals");
+  revalidatePath("/jobs");
   revalidatePath("/");
 
   return {
     entriesAdded,
     goalsSaved: true,
     setupPartial: Boolean(input.skipCoaching),
+    autopilotEnabled: isAutopilotEnabled(),
   };
 }
 

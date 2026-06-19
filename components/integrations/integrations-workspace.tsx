@@ -20,6 +20,7 @@ import {
   setIntegrationEnabledAction,
   type IntegrationView,
 } from "@/app/actions/integrations";
+import { SystemReadiness } from "@/components/system-readiness";
 
 function IntegrationCard({ integration }: { integration: IntegrationView }) {
   const [values, setValues] = useState<Record<string, string>>({});
@@ -189,6 +190,7 @@ export function IntegrationsWorkspace({
 }) {
   return (
     <div className="space-y-4">
+      <SystemReadiness />
       {integrations.map((i) => (
         <IntegrationCard key={i.id} integration={i} />
       ))}

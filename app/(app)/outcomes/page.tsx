@@ -26,28 +26,34 @@ import { HeadlineStats } from "@/components/outcomes/headline-stats";
 import { FunnelBar } from "@/components/outcomes/funnel-bar";
 import { LaneTable } from "@/components/outcomes/lane-table";
 import { Recommendations } from "@/components/outcomes/recommendations";
+import { LearningsFeed } from "@/components/outcomes/learnings-feed";
 import { AutomationPanel } from "@/components/outcomes/automation-panel";
+import {
+  listRejectionLearnings,
+  previewRejectionLearnings,
+} from "@/lib/track/learnings-view";
+import type { RejectionLearningView } from "@/lib/track/learnings-view";
 import type { MetricsView } from "@/lib/metrics/types";
 import type { OpsView } from "@/lib/scheduler/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function OutcomesPage() {
-  // Section A - outcome KPIs (DB read, protected; falls back to the pure preview).
+  const { scope } = await getAppContext();
+
   const metricsRes = await safeDb<MetricsView | null>(async () => {
-    const { scope, user } = await getAppContext();
     return getMetricsView(scope);
   }, null);
 
-  // Section B - scheduler status (DB read, protected; falls back to the preview).
+  const learningsRes = await safeDb<RejectionLearningView[]>(
+    async () => listRejectionLearnings(scope),
+    [],
+  );
+
   const opsRes = await safeDb<OpsView | null>(async () => {
-    const { scope, user } = await getAppContext();
     return getOpsView(scope);
   }, null);
 
-  // Use the offline preview whenever the DB is down OR there are no submitted
-  // applications yet, so the dashboard demonstrates the whole story (a flagged
-  // weak lane, an offer, a slow apply speed) instead of an all-zero blank.
   const usePreview =
     metricsRes.dbError ||
     !metricsRes.data ||
@@ -58,6 +64,12 @@ export default async function OutcomesPage() {
 
   const ops: OpsView =
     opsRes.dbError || !opsRes.data ? previewOps() : (opsRes.data as OpsView);
+
+  const useLearningsPreview =
+    learningsRes.dbError || learningsRes.data.length === 0;
+  const learnings: RejectionLearningView[] = useLearningsPreview
+    ? previewRejectionLearnings()
+    : learningsRes.data;
 
   const { practice } = metrics;
 
@@ -88,7 +100,6 @@ export default async function OutcomesPage() {
 
       {metricsRes.dbError && <DbBanner />}
 
-      {/* --- Section A - Outcomes -------------------------------------------- */}
       <section className="mb-12 space-y-6">
         <Recommendations items={metrics.recommendations} />
 
@@ -118,9 +129,10 @@ export default async function OutcomesPage() {
             .
           </p>
         )}
+
+        <LearningsFeed items={learnings} preview={useLearningsPreview} />
       </section>
 
-      {/* --- Section B - Automation ------------------------------------------ */}
       <section>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-semibold tracking-tight">

@@ -15,7 +15,10 @@ import { DbBanner } from "@/components/db-banner";
 import { getBoardView, listProposalViews, previewTrack } from "@/lib/track/service";
 import { gmailStatus, type GmailStatus } from "@/lib/gmail";
 import { disconnectGmailAction } from "@/app/actions/track";
-import { InboxProposals } from "@/components/track/inbox-proposals";
+import {
+  AppliedStageCompose,
+  splitBoardForAppliedStage,
+} from "@/components/track/applied-stage";
 import { TrackBoard } from "@/components/track/track-board";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -62,12 +65,13 @@ export default async function TrackPage({
   const preview = usePreview ? previewTrack() : null;
   const board = preview ? preview.board : data.board;
   const proposals = preview ? preview.proposals : data.proposals;
+  const { appliedColumn, restBoard } = splitBoardForAppliedStage(board);
 
   return (
     <main className="page-container-wide">
       <PageHeader
-        title="Tracker"
-        description="Gmail suggests status changes and you confirm them. It never moves a job to Interviewing, Offer, or Rejected on its own. A wrong label there is the worst kind of mistake, so a person always makes that change."
+        title="Applied"
+        description="Gmail proposes status changes for submitted applications — you confirm each one. Track cards live in the Applied column below."
       />
 
       {dbError && <DbBanner />}
@@ -157,8 +161,12 @@ export default async function TrackPage({
         </CardContent>
       </Card>
 
-      <InboxProposals proposals={proposals} readOnly={usePreview} />
-      <TrackBoard board={board} readOnly={usePreview} />
+      <AppliedStageCompose
+        proposals={proposals}
+        appliedColumn={appliedColumn}
+        readOnly={usePreview}
+      />
+      <TrackBoard board={restBoard} readOnly={usePreview} title="Rest of pipeline" />
     </main>
   );
 }

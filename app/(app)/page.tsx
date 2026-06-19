@@ -3,11 +3,13 @@ import { ArrowRight, Check } from "lucide-react";
 import { DbBanner } from "@/components/db-banner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LiveStatusBadge } from "@/components/live-status-badge";
 import { PipelineProgress } from "@/components/pipeline/pipeline-progress";
 import { safeDb } from "@/lib/safe";
 import { getAppContext } from "@/lib/app-context";
 import { getMetricsView, previewMetrics } from "@/lib/metrics/service";
 import { autopilotStatus } from "@/lib/autopilot/orchestrator";
+import { MODULES } from "@/lib/modules";
 import {
   getSetupStatus,
   defaultHomeStage,
@@ -46,6 +48,10 @@ export default async function DashboardPage() {
   const primaryLabel = setup.complete
     ? `Continue to ${currentStage.label.toLowerCase()}`
     : "Continue setup";
+
+  const adapterNotes = MODULES.filter(
+    (m) => m.href && m.liveStatus !== "live",
+  );
 
   return (
     <main className="page-container max-w-2xl py-12 sm:py-16">
@@ -163,6 +169,27 @@ export default async function DashboardPage() {
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">{autopilot.summary}</p>
+
+        {adapterNotes.length > 0 && (
+          <div className="mx-auto mt-8 max-w-md border-t border-border/60 pt-6 text-left">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Adapter status
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {adapterNotes.map((m) => (
+                <li key={m.id}>
+                  <Link
+                    href={m.href!}
+                    className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                  >
+                    <span>{m.name}</span>
+                    <LiveStatusBadge status={m.liveStatus} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
     </main>
   );
