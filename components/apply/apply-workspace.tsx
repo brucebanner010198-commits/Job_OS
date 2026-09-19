@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApplyQueueHints } from "@/components/apply/apply-queue-hints";
 import { ReviewGate, StateBadge } from "@/components/apply/apply-cards";
 import { RouteBadge } from "@/components/pipeline/route-badge";
+import { ApplicationLaunchpad } from "@/components/apply/application-launchpad";
 import type {
   ApplicationAnswersData,
   ApplyPlan,
@@ -43,12 +44,15 @@ function PreviewPlanCard({
   job,
   company,
   plan,
+  resumeText,
 }: {
   job: string;
   company: string;
   plan: ApplyPlan;
+  resumeText?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [launchpadOpen, setLaunchpadOpen] = useState(false);
 
   return (
     <div className="rounded-xl border border-border bg-card opacity-90">
@@ -64,6 +68,14 @@ function PreviewPlanCard({
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <RouteBadge route={plan.route} />
             <StateBadge state={plan.nextState} />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setLaunchpadOpen(true)}
+              className="h-6 gap-1 text-[11px] border-accent/40 text-accent hover:bg-accent/10"
+            >
+              🚀 Launchpad
+            </Button>
           </div>
         </div>
         <button
@@ -78,6 +90,14 @@ function PreviewPlanCard({
           )}
         </button>
       </div>
+
+      <ApplicationLaunchpad
+        isOpen={launchpadOpen}
+        onClose={() => setLaunchpadOpen(false)}
+        jobTitle={job}
+        company={company}
+        resumeSummary={resumeText ? resumeText.slice(0, 300) : undefined}
+      />
 
       {plan.knockouts.disqualified && (
         <div className="border-t border-border bg-[var(--danger)]/8 px-4 py-3">
@@ -371,6 +391,7 @@ export function ApplyWorkspace({
               job={job}
               company={company}
               plan={plan}
+              resumeText={resumeText}
             />
           ))}
         </div>

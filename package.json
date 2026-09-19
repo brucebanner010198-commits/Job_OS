@@ -63,7 +63,8 @@
     "test:resume-import": "tsx scripts/test-resume-import.ts",
     "test:competitor-fixes": "tsx scripts/test-competitor-fixes.ts",
     "test:job-training": "tsx scripts/test-job-training.ts",
-    "test:coaching-session": "tsx scripts/test-coaching-session.ts"
+    "test:coaching-session": "tsx scripts/test-coaching-session.ts",
+    "test:ux": "tsx scripts/test-ux-improvements.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

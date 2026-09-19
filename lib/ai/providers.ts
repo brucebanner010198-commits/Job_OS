@@ -56,16 +56,28 @@ export async function universalChat(opts: ChatOptions): Promise<ChatResult> {
   const anthropicKey = (await getSecret("ANTHROPIC_API_KEY")) || process.env.ANTHROPIC_API_KEY;
   const openrouterKey = (await getSecret("OPENROUTER_API_KEY")) || process.env.OPENROUTER_API_KEY;
 
+  let effectiveLocalUrl = localUrl;
+  if (!effectiveLocalUrl && !geminiKey && !openaiKey && !anthropicKey) {
+    try {
+      const probe = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(500) });
+      if (probe.ok) {
+        effectiveLocalUrl = "http://localhost:11434/v1";
+      }
+    } catch {
+      // Local Ollama offline
+    }
+  }
+
   const targetProvider = opts.provider ?? (
-    localUrl ? "ollama" :
+    effectiveLocalUrl ? "ollama" :
     geminiKey ? "gemini" :
     openaiKey ? "openai" :
     anthropicKey ? "anthropic" :
     "openrouter"
   );
 
-  if (targetProvider === "ollama" || (localUrl && !opts.provider)) {
-    return chatOllama(opts, localUrl ?? "http://localhost:11434/v1");
+  if (targetProvider === "ollama" || (effectiveLocalUrl && !opts.provider)) {
+    return chatOllama(opts, effectiveLocalUrl ?? "http://localhost:11434/v1");
   }
 
   if (targetProvider === "gemini" && geminiKey) {

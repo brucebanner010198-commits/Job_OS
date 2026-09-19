@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { OfflineSessionRecorder } from "@/components/coaching/offline-session-recorder";
+import { StarBalanceMeter } from "@/components/coaching/star-balance-meter";
 import {
   processCoachingSessionAction,
   saveCoachingSessionAction,
@@ -83,6 +84,8 @@ export function CoachingSessionWorkspace({
         }}
         initialTranscript={transcript}
       />
+
+      <StarBalanceMeter transcript={transcript} />
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
