@@ -45,7 +45,11 @@ async function extractPdfText(buffer: Buffer): Promise<{ text: string; hasTextLa
     const text = (result.text ?? "").replace(/\r\n/g, "\n").trim();
     return { text, hasTextLayer: text.length >= MIN_TEXT_CHARS };
   } finally {
-    await parser.destroy();
+    try {
+      await parser.destroy();
+    } catch {
+      // ignore cleanup errors
+    }
   }
 }
 

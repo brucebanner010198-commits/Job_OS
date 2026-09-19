@@ -41,6 +41,16 @@ export function buildBoard(apps: AppRef[]): BoardColumn[] {
   }));
 }
 
+export function splitBoardForAppliedStage<T extends { status: AppStatus }>(board: T[]): {
+  appliedColumn: T | undefined;
+  restBoard: T[];
+} {
+  const appliedColumn = board.find((col) => col.status === ("APPLIED" satisfies AppStatus));
+  const restBoard = board.filter((col) => col.status !== "APPLIED");
+  return { appliedColumn, restBoard };
+}
+
+
 /**
  * True when an app may be dragged from `from` to `to`: both must be real board
  * columns (present in BOARD_COLUMNS, so SKIPPED is not a drop target) and the
