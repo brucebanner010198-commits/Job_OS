@@ -8,16 +8,26 @@ const globalForPrisma = globalThis as unknown as {
   pool?: Pool;
 };
 
-function createPrismaClient(): PrismaClient {
+function getConnectionString(): string {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
       "DATABASE_URL is not set. Copy .env.example to .env and run npm run db:up",
     );
   }
-  const pool =
-    globalForPrisma.pool ?? new Pool({ connectionString });
-  if (process.env.NODE_ENV !== "production") globalForPrisma.pool = pool;
+  return connectionString;
+}
+
+/** Shared pg pool — use for silent reachability checks (avoids Prisma error logs). */
+export function getDbPool(): Pool {
+  if (!globalForPrisma.pool) {
+    globalForPrisma.pool = new Pool({ connectionString: getConnectionString() });
+  }
+  return globalForPrisma.pool;
+}
+
+function createPrismaClient(): PrismaClient {
+  const pool = getDbPool();
 
   const adapter = new PrismaPg(pool);
   return new PrismaClient({

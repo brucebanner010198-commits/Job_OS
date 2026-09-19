@@ -6,6 +6,8 @@ import { computeAtsMatch, extractJdKeywords } from "@/lib/scoring/ats-keywords";
 import { ATS } from "@/lib/resume/ats-rules";
 import type { CompanyBriefData } from "@/lib/brief/types";
 
+import { getResourcesForSkill, type LearningResource } from "@/lib/skills/curated-resources";
+
 export type GapCategory =
   | "skill"
   | "experience"
@@ -23,6 +25,8 @@ export interface GapItem {
   gap: string;
   fix: string;
   evidence?: string;
+  skillName?: string;
+  resources?: LearningResource[];
 }
 
 export interface GapAnalysisInput {
@@ -103,12 +107,15 @@ export function analyzeGaps(input: GapAnalysisInput): GapAnalysisResult {
   const gaps: GapItem[] = [];
 
   for (const kw of ats.gaps.slice(0, 8)) {
+    const resources = getResourcesForSkill(kw);
     gaps.push({
       id: `kw-${kw}`,
       category: "skill",
       priority: basePriority,
+      skillName: kw,
       gap: `JD keyword missing from profile: "${kw}"`,
-      fix: `Add truthful evidence for "${kw}" in master resume or tailor bullet`,
+      fix: `Learn and practice "${kw}", then record it in your daily journal to update your master CV.`,
+      resources,
     });
   }
 

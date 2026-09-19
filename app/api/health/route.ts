@@ -4,21 +4,8 @@
  */
 import { NextResponse } from "next/server";
 import pkg from "@/package.json";
-import { db } from "@/lib/db";
+import { pingDatabase } from "@/lib/db-health";
 import { allIntegrationStatuses } from "@/lib/integrations/registry";
-
-type DbHealth = { ok: true; latencyMs: number } | { ok: false; error: string };
-
-async function pingDatabase(): Promise<DbHealth> {
-  const start = Date.now();
-  try {
-    await db.$queryRaw`SELECT 1`;
-    return { ok: true, latencyMs: Date.now() - start };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "database unreachable";
-    return { ok: false, error: message };
-  }
-}
 
 export async function GET(): Promise<NextResponse> {
   const [dbHealth, integrations] = await Promise.all([

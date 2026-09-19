@@ -42,6 +42,8 @@ model User {
   profiles          Profile[]
   knowledgeChunks   KnowledgeChunk[]
   textEmbeddings    TextEmbedding[]
+  workLogEntries    WorkLogEntry[]
+  candidateBullets  CandidateBullet[]
 }
 
 // Named identity within one install (e.g. "Sam", "Alex"). Career data is scoped
@@ -79,6 +81,8 @@ model Profile {
   knowledgeChunks    KnowledgeChunk[]
   textEmbeddings     TextEmbedding[]
   applySessions      ApplySession[]
+  workLogEntries     WorkLogEntry[]
+  candidateBullets   CandidateBullet[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -237,6 +241,9 @@ model Job {
   scoreExplain Json?          // { relevance, reachability, caps[], recencyBonus, notes[] }
   firstSeenAt  DateTime       @default(now())
   postedAt     DateTime?
+  // ─ Skill gap & learning routing ─
+  skillGaps     Json?          // [{ skill: string, importance: "required" | "preferred", category: string, resources: [{ title: string, url: string, type: string }] }]
+  learningLinks Json?          // [{ title: string, url: string, description: string }]
   createdAt    DateTime       @default(now())
 
   application  Application?
@@ -835,4 +842,55 @@ model TextEmbedding {
 
   @@unique([userId, cacheKey])
   @@index([profileId, cacheKey])
+}
+
+// ─── Day-to-Day Work Journal & Brag Document Compiler ──────────────────────
+// Daily work log capturing what was accomplished, projects worked on,
+// technical decisions, personal point of view, and quantified metrics.
+model WorkLogEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  date        DateTime  @default(now())
+  title       String
+  project     String?
+  tasksDone   String
+  pointOfView String?   // personal perspective, architectural rationale, learnings
+  category    String    @default("FEATURE") // FEATURE | BUGFIX | ARCHITECTURE | LEADERSHIP | PROCESS | LEARNING
+  rawContext  String?   // PR diff, commit hash, ticket link, slack excerpt
+  metrics     Json?     // [{ label: string, delta: string }]
+  tags        String[]
+  compiled    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  candidateBullets CandidateBullet[]
+
+  @@index([userId, date])
+  @@index([profileId, date])
+  @@index([profileId, compiled])
+}
+
+// AI-synthesized resume bullets derived from one or more WorkLogEntries.
+// Backlinked directly to the originating work logs for strict provenance.
+model CandidateBullet {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId      String
+  profile        Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  workLogEntryId String?
+  workLogEntry   WorkLogEntry? @relation(fields: [workLogEntryId], references: [id], onDelete: SetNull)
+  bulletText     String
+  impactClaim    String?
+  suggestedKind  String        @default("EXPERIENCE") // EXPERIENCE | PROJECT | ACHIEVEMENT | SKILL
+  approved       Boolean       @default(false)
+  // ID of the created ProfileEntry once the human approves the graduation.
+  profileEntryId String?
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, approved])
+  @@index([profileId, approved])
 }

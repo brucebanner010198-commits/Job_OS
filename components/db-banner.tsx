@@ -8,8 +8,9 @@ export function DbBanner() {
       <div>
         <p className="font-medium text-foreground">Database not connected</p>
         <p className="mt-0.5 text-muted-foreground">
-          Start Postgres with <code className="rounded bg-muted px-1">npm run db:up</code>{" "}
-          then apply the schema with{" "}
+          Ensure Docker Desktop is running, then start Postgres with{" "}
+          <code className="rounded bg-muted px-1">npm run db:up</code> and apply
+          the schema with{" "}
           <code className="rounded bg-muted px-1">npm run db:migrate</code>. Saved
           data will appear here once it&apos;s running.
         </p>

@@ -12,9 +12,13 @@ import { remotiveSource } from "./remotive";
 import { remoteokSource } from "./remoteok";
 import { arbeitnowSource } from "./arbeitnow";
 import { jobicySource } from "./jobicy";
+import { atsPortalsSource } from "./ats-portals";
+import { jobspySource } from "./jobspy";
 
 export const SOURCES: JobSource[] = [
   fixturesSource,
+  atsPortalsSource,
+  jobspySource,
   jsearchSource,
   remotiveSource,
   remoteokSource,

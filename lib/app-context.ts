@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import type { Profile, User } from "@prisma/client";
+import { isDatabaseReachable } from "@/lib/db-health";
 import { getPrimaryUser } from "@/lib/user";
 import {
   DEFAULT_PROFILE_NAME,
@@ -37,6 +38,9 @@ export async function resolveActiveProfile(userId: string): Promise<Profile> {
 
 /** Primary request context: install user + active named profile. */
 export async function getAppContext(): Promise<AppContext> {
+  if (!(await isDatabaseReachable())) {
+    throw new Error("Database unreachable");
+  }
   const user = await getPrimaryUser();
   const profile = await resolveActiveProfile(user.id);
   return {
@@ -75,6 +79,9 @@ function offlineAppContext(): AppContext {
  * database is down so the app shell and dashboard stay visible.
  */
 export async function getAppContextSafe(): Promise<AppContextResult> {
+  if (!(await isDatabaseReachable())) {
+    return { ...offlineAppContext(), dbError: true };
+  }
   try {
     const ctx = await getAppContext();
     return { ...ctx, dbError: false };
