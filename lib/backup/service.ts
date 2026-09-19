@@ -56,11 +56,11 @@ const VALID_KINDS = new Set<string>(Object.values(ProfileEntryKind));
 // --- disk helpers ------------------------------------------------------------
 
 function backupRootAbs(): string {
-  return path.join(process.cwd(), BACKUP_DIR);
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), BACKUP_DIR);
 }
 
 function profileDirAbs(scope: AppScope): string {
-  return path.join(backupRootAbs(), scope.userId, scope.profileId);
+  return path.join(/*turbopackIgnore: true*/ backupRootAbs(), scope.userId, scope.profileId);
 }
 
 function stampFromIso(nowIso: string): string {
@@ -228,7 +228,7 @@ async function readEnvelope(
   scope: AppScope,
   filePath: string,
 ): Promise<ProfileExport> {
-  const abs = path.join(process.cwd(), filePath);
+  const abs = path.join(/*turbopackIgnore: true*/ process.cwd(), filePath);
   const envelope = JSON.parse(await fs.readFile(abs, "utf8")) as BackupEnvelope;
   const { key } = await loadBackupKey();
   const plaintext = decryptGcm(
