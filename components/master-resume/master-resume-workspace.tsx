@@ -7,7 +7,8 @@ import { ShieldAlert, LayoutList, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtsLinearPreview } from "@/components/master-resume/ats-linear-preview";
-import { needsPolish, BULLET_POLISH_VERSION } from "@/lib/profile/polish";
+
+const BULLET_POLISH_VERSION = 1;
 
 const KIND_LABEL: Record<ProfileEntryKind, string> = {
   CONTACT: "Contact",
@@ -55,6 +56,14 @@ function isPolished(entry: ProfileEntry): boolean {
   if (!data || typeof data !== "object") return false;
   const polish = data.bulletPolish as { version?: number } | undefined;
   return polish?.version === BULLET_POLISH_VERSION;
+}
+
+function needsPolish(entry: ProfileEntry): boolean {
+  if (entry.sensitive) return false;
+  if (entry.kind !== "EXPERIENCE" && entry.kind !== "PROJECT") return false;
+  const data = entry.data as Record<string, unknown> | null;
+  if (!data || !Array.isArray(data.bullets) || data.bullets.length === 0) return false;
+  return !isPolished(entry);
 }
 
 function truncate(text: string, max = 80): string {
