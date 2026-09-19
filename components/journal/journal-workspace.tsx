@@ -10,12 +10,14 @@ import {
   Trash2,
   TrendingUp,
   BookOpen,
+  Mic,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { CoachingSessionWorkspace } from "@/components/coaching/coaching-session-workspace";
 import type { WorkLogEntry, CandidateBullet } from "@prisma/client";
 import type { WorkCategory } from "@/lib/journal/types";
 import {
@@ -23,6 +25,7 @@ import {
   deleteWorkLogAction,
   compileWeeklyJournalAction,
   approveCandidateBulletAction,
+  getJournalDataAction,
 } from "@/app/actions/journal";
 
 export type CandidateBulletWithSource = CandidateBullet & {
@@ -38,6 +41,7 @@ export function JournalWorkspace({
 }) {
   const [logs, setLogs] = useState(initialLogs);
   const [bullets, setBullets] = useState(initialBullets);
+  const [entryMode, setEntryMode] = useState<"audio" | "manual">("audio");
   const [isPending, startTransition] = useTransition();
   const [isCompiling, startCompiling] = useTransition();
 
@@ -50,6 +54,14 @@ export function JournalWorkspace({
   const [metricsStr, setMetricsStr] = useState("");
 
   const uncompiledLogs = logs.filter((l) => !l.compiled);
+
+  const handleSessionSaved = async () => {
+    try {
+      const refreshed = await getJournalDataAction();
+      setLogs(refreshed.logs);
+      setBullets(refreshed.candidateBullets);
+    } catch {}
+  };
 
   const handleAddLog = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,11 +194,10 @@ export function JournalWorkspace({
                     ) : (
                       <Button
                         size="sm"
+                        variant="accent"
                         onClick={() => handleApproveBullet(bullet.id)}
                         disabled={isPending}
-                        className="gap-1.5"
                       >
-                        <Plus className="h-3.5 w-3.5" />
                         Approve & add to CV
                       </Button>
                     )}
@@ -200,19 +211,52 @@ export function JournalWorkspace({
 
       {/* Dual column: Log entry form & Log history */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left pane: New entry */}
+        {/* Left pane: New entry (Audio session or manual form) */}
         <div className="lg:col-span-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-accent" />
-                Log daily work
-              </CardTitle>
-              <CardDescription>
-                Document what you built, technical decisions, and your personal point of view.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h3 className="text-sm font-semibold tracking-tight">Record Daily Work</h3>
+            <div className="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg border border-border">
+              <button
+                type="button"
+                onClick={() => setEntryMode("audio")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  entryMode === "audio"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Mic className="h-3.5 w-3.5" />
+                Audio Session
+              </button>
+              <button
+                type="button"
+                onClick={() => setEntryMode("manual")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  entryMode === "manual"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Manual Form
+              </button>
+            </div>
+          </div>
+
+          {entryMode === "audio" ? (
+            <CoachingSessionWorkspace onSessionSaved={handleSessionSaved} />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-accent" />
+                  Manual work log
+                </CardTitle>
+                <CardDescription>
+                  Document what you built, technical decisions, and your personal point of view.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
               <form onSubmit={handleAddLog} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Title / Milestone</label>
@@ -293,6 +337,7 @@ export function JournalWorkspace({
               </form>
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* Right pane: Log timeline */}
