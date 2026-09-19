@@ -99,6 +99,46 @@ function formatTurns(turns: CoachingTurn[]): string {
 /**
  * Compile all onboarding inputs into structured entries + goals note (preview).
  */
+function getOfflineCompiledProfile(input: {
+  path: OnboardingPath;
+  turns: CoachingTurn[];
+  profileText: string;
+  resumeText?: string;
+  initialPaste?: string;
+}): CompiledProfile {
+  const entries: CompiledEntry[] = [];
+  const text = [input.resumeText, input.initialPaste, input.profileText].filter(Boolean).join("\n");
+
+  if (text.trim()) {
+    entries.push({
+      kind: "SUMMARY",
+      title: "Professional Summary",
+      data: { summary: text.slice(0, 300) },
+      sensitive: false,
+      provenance: input.resumeText ? "resume" : "paste",
+    });
+  }
+
+  const userMessages = input.turns.filter((t) => t.role === "user").map((t) => t.content);
+  const goalsNote = userMessages.join(" ");
+
+  if (userMessages.length > 0) {
+    entries.push({
+      kind: "ACHIEVEMENT",
+      title: "Coaching Notes & Highlights",
+      data: { details: userMessages.slice(0, 3).join("\n") },
+      sensitive: false,
+      provenance: "conversation",
+    });
+  }
+
+  return {
+    entries,
+    goalsNote: goalsNote || "Target roles and career growth.",
+    unconfirmedCount: 0,
+  };
+}
+
 export async function compileOnboardingProfile(input: {
   path: OnboardingPath;
   turns: CoachingTurn[];
@@ -122,38 +162,43 @@ export async function compileOnboardingProfile(input: {
     .filter(Boolean)
     .join("\n\n---\n\n");
 
-  const { value } = await chatJson(compileSchema, {
-    task: "onboardingCoaching",
-    temperature: 0.2,
-    maxTokens: 4000,
-    messages: [
-      { role: "system", content: COMPILE_SYSTEM },
-      { role: "user", content: sources },
-    ],
-  });
+  try {
+    const { value } = await chatJson(compileSchema, {
+      task: "onboardingCoaching",
+      temperature: 0.2,
+      maxTokens: 4000,
+      messages: [
+        { role: "system", content: COMPILE_SYSTEM },
+        { role: "user", content: sources },
+      ],
+    });
 
-  const entries: CompiledEntry[] = mergeEntriesByProvenance(
-    value.entries.map((e) => ({
-      kind: e.kind,
-      title: e.title,
-      data: {
-        ...e.data,
-        ...(e.inferred ? { inferred: true } : {}),
-      },
-      sensitive: e.sensitive,
-      provenance: e.provenance as EntryProvenance,
-    })),
-  );
+    const entries: CompiledEntry[] = mergeEntriesByProvenance(
+      value.entries.map((e) => ({
+        kind: e.kind,
+        title: e.title,
+        data: {
+          ...e.data,
+          ...(e.inferred ? { inferred: true } : {}),
+        },
+        sensitive: e.sensitive,
+        provenance: e.provenance as EntryProvenance,
+      })),
+    );
 
-  const unconfirmedCount = entries.filter(
-    (e) => e.data.inferred === true,
-  ).length;
+    const unconfirmedCount = entries.filter(
+      (e) => e.data.inferred === true,
+    ).length;
 
-  return {
-    entries,
-    goalsNote: value.goalsNote,
-    unconfirmedCount,
-  };
+    return {
+      entries,
+      goalsNote: value.goalsNote,
+      unconfirmedCount,
+    };
+  } catch (err) {
+    console.warn("[compileOnboardingProfile] LLM unavailable, falling back to local compilation:", err);
+    return getOfflineCompiledProfile(input);
+  }
 }
 
 /**
