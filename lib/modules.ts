@@ -60,6 +60,16 @@ export const MODULES: ModuleMeta[] = [
     href: "/master-resume",
   },
   {
+    id: "journal",
+    name: "Career Journal",
+    blurb: "Log daily work and reflections. Automatically compiles into weekly Master CV updates.",
+    icon: "BookOpen",
+    phase: 1,
+    uiStatus: "ready",
+    liveStatus: "live",
+    href: "/journal",
+  },
+  {
     id: "resume",
     name: "Tailored ATS Resume",
     blurb: "A truthful, one-page resume tailored to each job and safe for resume scanners.",
@@ -168,6 +178,16 @@ export const MODULES: ModuleMeta[] = [
     uiStatus: "ready",
     liveStatus: "live",
     href: "/boosters",
+  },
+  {
+    id: "offers",
+    name: "Offer Comparison",
+    blurb: "Compare competing offers side-by-side across total compensation, equity, and perks.",
+    icon: "Scale",
+    phase: 7,
+    uiStatus: "ready",
+    liveStatus: "live",
+    href: "/offers",
   },
   {
     id: "training",

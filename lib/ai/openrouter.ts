@@ -47,54 +47,8 @@ function resolveModel(opts: ChatOptions): string {
  * never enables prompt logging.
  */
 export async function chat(opts: ChatOptions): Promise<ChatResult> {
-  const apiKey = await getSecret("OPENROUTER_API_KEY");
-  if (!apiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY is not set. Add it to .env (dev) or the OS keychain (packaged build).",
-    );
-  }
-
-  const model = resolveModel(opts);
-  const enforceZdr = process.env.OPENROUTER_ENFORCE_ZDR !== "0";
-
-  const body: Record<string, unknown> = {
-    model,
-    messages: opts.messages,
-    temperature: opts.temperature ?? 0.3,
-    ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
-    ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-    ...(enforceZdr
-      ? { provider: { zdr: true, data_collection: "deny" } }
-      : {}),
-  };
-
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": process.env.APP_URL ?? "http://localhost:3000",
-      "X-Title": "Job OS",
-    },
-    body: JSON.stringify(body),
-    signal: opts.signal,
-  });
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`OpenRouter ${res.status} (${model}): ${detail.slice(0, 500)}`);
-  }
-
-  const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-    usage?: ChatUsage;
-  };
-
-  return {
-    text: data.choices?.[0]?.message?.content ?? "",
-    model,
-    usage: data.usage,
-  };
+  const { universalChat } = await import("./providers");
+  return universalChat(opts);
 }
 
 /**

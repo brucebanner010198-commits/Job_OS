@@ -20,6 +20,7 @@ import {
   Upload,
   BookOpen,
   Building2,
+  Scale,
 } from "lucide-react";
 import { LiveStatusBadge } from "@/components/live-status-badge";
 import { MODULES, type LiveAdapterStatus } from "@/lib/modules";
@@ -37,12 +38,14 @@ const TOOL_LINKS = [
   { href: "/linkedin", label: "LinkedIn", icon: Network },
   { href: "/warm-path", label: "Warm path", icon: Users },
   { href: "/boosters", label: "Boosters", icon: TrendingUp },
+  { href: "/offers", label: "Offer matrix", icon: Scale },
   { href: "/outcomes", label: "Outcomes", icon: Gauge },
 ] as const;
 
 const MODULE_LINKS = [
   { href: "/import", label: "Import resume", icon: Upload },
   { href: "/master-resume", label: "Master resume", icon: Mic },
+  { href: "/journal", label: "Career journal", icon: BookOpen },
   { href: "/goals", label: "Career goals", icon: Target },
   { href: "/resume", label: "Tailor resume", icon: FileText },
   { href: "/companies", label: "Company brief", icon: Building2 },

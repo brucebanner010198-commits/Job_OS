@@ -34,10 +34,57 @@ export interface IntegrationDef {
 
 export const INTEGRATIONS: IntegrationDef[] = [
   {
+    id: "ollama",
+    name: "Ollama / Local AI",
+    description:
+      "Run 100% free, local AI on your machine (e.g. Llama 3.3, Qwen 2.5 Coder) with zero API costs and full privacy.",
+    category: "ai",
+    fields: [
+      {
+        key: "OLLAMA_BASE_URL",
+        label: "Base URL",
+        secret: false,
+        placeholder: "http://localhost:11434/v1",
+      },
+      {
+        key: "LOCAL_MODEL_NAME",
+        label: "Model name",
+        secret: false,
+        placeholder: "llama3.2",
+      },
+    ],
+    docsUrl: "https://ollama.com",
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    description:
+      "Direct Google Generative AI integration (Gemini 2.5 Flash and Pro). Free and paid tiers available.",
+    category: "ai",
+    fields: [{ key: "GEMINI_API_KEY", label: "API key", secret: true }],
+    docsUrl: "https://aistudio.google.com/app/apikey",
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    description: "Direct OpenAI API integration (GPT-4o, GPT-4o-mini).",
+    category: "ai",
+    fields: [{ key: "OPENAI_API_KEY", label: "API key", secret: true }],
+    docsUrl: "https://platform.openai.com/api-keys",
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    description: "Direct Anthropic API integration (Claude 3.5 Sonnet, Haiku).",
+    category: "ai",
+    fields: [{ key: "ANTHROPIC_API_KEY", label: "API key", secret: true }],
+    docsUrl: "https://console.anthropic.com",
+  },
+  {
     id: "openrouter",
     name: "OpenRouter",
     description:
-      "Primary LLM + embeddings gateway. Required for AI features (briefs, tailoring, scoring).",
+      "Multi-model aggregator gateway. Required for OpenRouter-routed features.",
     category: "ai",
     fields: [{ key: "OPENROUTER_API_KEY", label: "API key", secret: true }],
     docsUrl: "https://openrouter.ai/keys",
