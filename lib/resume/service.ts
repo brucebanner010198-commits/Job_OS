@@ -14,6 +14,7 @@ import {
 } from "@/lib/profile/service";
 import { isTargetResumeStale } from "@/lib/career/staleness";
 import { tailorResume, type TailorResult } from "@/lib/resume/tailor";
+import { JobOSError } from "@/lib/errors/job-os-error";
 
 export const MAX_TARGETS_PER_RUN = 5;
 
@@ -53,20 +54,43 @@ export async function loadTargetContext(scope: AppScope, targetId: string) {
   const target = await db.target.findFirst({
     where: { id: targetId, ...scopeWhere(scope) },
   });
-  if (!target) throw new Error("Target not found.");
+  if (!target) {
+    throw JobOSError.notFound({
+      domain: "job_os.resume",
+      reason: "TARGET_NOT_FOUND",
+      location: "lib/resume/service.ts:loadTargetContext",
+      message: `Job target not found: ${targetId}.`,
+      remedy: "Verify that the target exists in this profile or create a new target from the Jobs queue.",
+      metadata: { targetId, profileId: scope.profileId, userId: scope.userId },
+    });
+  }
 
   const facts = toFacts(await listFacts(scope));
   if (facts.length === 0) {
-    throw new Error(
-      "Your master profile is empty - add or import your background first.",
-    );
+    throw JobOSError.failedPrecondition({
+      domain: "job_os.resume",
+      reason: "FACTS_EMPTY",
+      location: "lib/resume/service.ts:loadTargetContext",
+      message: "Your master profile is empty. Add or import your background first.",
+      remedy: "Navigate to the Master Resume or Setup page to import a resume or add career history facts.",
+      metadata: { profileId: scope.profileId, userId: scope.userId },
+    });
   }
 
   const [contact, user] = await Promise.all([
     getContact(scope),
     db.user.findUnique({ where: { id: scope.userId } }),
   ]);
-  if (!user) throw new Error("User not found.");
+  if (!user) {
+    throw JobOSError.notFound({
+      domain: "job_os.resume",
+      reason: "USER_NOT_FOUND",
+      location: "lib/resume/service.ts:loadTargetContext",
+      message: `User account not found: ${scope.userId}.`,
+      remedy: "Ensure your session is active or sign in again.",
+      metadata: { userId: scope.userId },
+    });
+  }
 
   return { user, target, facts, contact };
 }

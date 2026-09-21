@@ -21,6 +21,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "catchup": "tsx scripts/run-catchup.ts",
     "backup": "tsx scripts/backup.ts",
+    "diagnose": "tsx scripts/diagnose.ts",
+    "test:diagnostics": "tsx scripts/test-diagnostics.ts",
     "install:agents": "tsx scripts/install-agents.ts",
     "tauri": "tauri",
     "test:provenance": "tsx scripts/test-provenance.ts",

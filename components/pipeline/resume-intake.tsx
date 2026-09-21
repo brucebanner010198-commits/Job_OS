@@ -12,6 +12,7 @@ import {
   type ImportResult,
 } from "@/app/actions/profile";
 import { cn } from "@/lib/utils";
+import { DiagnosticError } from "@/components/ui/diagnostic-error";
 
 const ACCEPT = ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -24,7 +25,7 @@ export function ResumeIntake({
 }) {
   const [text, setText] = useState("");
   const [result, setResult] = useState<ImportResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,7 +54,7 @@ export function ResumeIntake({
           setError("No entries could be extracted. Check the text and try again.");
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setError(e instanceof Error ? e : String(e));
       }
     });
   }
@@ -71,7 +72,7 @@ export function ResumeIntake({
           setError("No entries could be extracted from this file. Try paste instead.");
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not read this file.");
+        setError(e instanceof Error ? e : String(e));
       }
     });
   }
@@ -169,7 +170,12 @@ export function ResumeIntake({
         </div>
       </div>
 
-      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+      {error && (
+        <DiagnosticError
+          error={error}
+          title="Resume import issue"
+        />
+      )}
 
       {result && result.added > 0 && (
         <div className="rounded-lg border border-border bg-background p-3">

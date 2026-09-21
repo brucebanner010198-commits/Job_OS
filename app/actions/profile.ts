@@ -9,6 +9,7 @@ import { extractFromDictation } from "@/lib/profile/extract";
 import { importResumeText } from "@/lib/import/import";
 import { parseResumeDocument } from "@/lib/import/parse-document";
 import { scheduleCareerRefresh } from "@/lib/career/trigger";
+import { JobOSError } from "@/lib/errors/job-os-error";
 
 export interface SaveDictationResult {
   added: number;
@@ -90,7 +91,13 @@ export async function uploadResumeFileAction(
   await requireAccessForMutation();
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    throw new Error("No file uploaded. Choose a PDF or Word (.docx) resume.");
+    throw JobOSError.invalidArgument({
+      domain: "job_os.import",
+      reason: "NO_FILE_UPLOADED",
+      location: "app/actions/profile.ts:uploadResumeFileAction",
+      message: "No file uploaded. Choose a PDF or Word (.docx) resume.",
+      remedy: "Select a file from your device before clicking upload.",
+    });
   }
 
   const { scope } = await getAppContext();

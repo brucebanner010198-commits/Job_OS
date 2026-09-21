@@ -5,6 +5,8 @@
  * OCR is deferred to a later phase.
  */
 
+import { JobOSError } from "@/lib/errors/job-os-error";
+
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const MIN_TEXT_CHARS = 80;
 
@@ -69,26 +71,49 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
  */
 export async function parseResumeDocument(file: File): Promise<ParsedResumeDocument> {
   if (!file || file.size === 0) {
-    throw new Error("No file selected. Choose a PDF or Word (.docx) resume.");
+    throw JobOSError.invalidArgument({
+      domain: "job_os.import",
+      reason: "EMPTY_FILE",
+      location: "lib/import/parse-document.ts:parseResumeDocument",
+      message: "No file selected. Choose a PDF or Word (.docx) resume.",
+      remedy: "Select a valid PDF or DOCX file from your file system.",
+    });
   }
 
   if (file.size > MAX_BYTES) {
-    throw new Error(
-      `File is too large (${Math.round(file.size / 1024 / 1024)} MB). Maximum size is 5 MB.`,
-    );
+    throw JobOSError.invalidArgument({
+      domain: "job_os.import",
+      reason: "FILE_TOO_LARGE",
+      location: "lib/import/parse-document.ts:parseResumeDocument",
+      message: `File is too large (${Math.round(file.size / 1024 / 1024)} MB). Maximum size is 5 MB.`,
+      remedy: "Compress the file or upload a text-only copy below 5 MB.",
+      metadata: { sizeBytes: file.size, maxBytes: MAX_BYTES },
+    });
   }
 
   const format = detectFormat(file);
   if (!format) {
-    throw new Error(
-      "Unsupported format. Upload a PDF or Word document (.docx), or paste your resume text below.",
-    );
+    throw JobOSError.invalidArgument({
+      domain: "job_os.import",
+      reason: "UNSUPPORTED_FORMAT",
+      location: "lib/import/parse-document.ts:parseResumeDocument",
+      message:
+        "Unsupported format. Upload a PDF or Word document (.docx), or paste your resume text below.",
+      remedy: "Save your document as PDF or DOCX, or paste the text directly into the text area.",
+      metadata: { fileName: file.name, mimeType: file.type },
+    });
   }
 
   if (/\.doc$/i.test(file.name) && !DOCX_EXT.test(file.name)) {
-    throw new Error(
-      "Legacy Word (.doc) files are not supported. Save as .docx or export a PDF, then try again.",
-    );
+    throw JobOSError.invalidArgument({
+      domain: "job_os.import",
+      reason: "LEGACY_DOC_FORMAT",
+      location: "lib/import/parse-document.ts:parseResumeDocument",
+      message:
+        "Legacy Word (.doc) files are not supported. Save as .docx or export a PDF, then try again.",
+      remedy: "Open the file in Microsoft Word or Google Docs and export as modern .docx or PDF.",
+      metadata: { fileName: file.name },
+    });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -98,22 +123,39 @@ export async function parseResumeDocument(file: File): Promise<ParsedResumeDocum
     let result: { text: string; hasTextLayer: boolean };
     try {
       result = await extractPdfText(buffer);
-    } catch {
-      throw new Error(
-        "Could not parse this PDF file. It may be corrupt or encrypted. Try re-saving it or paste your resume below.",
-      );
+    } catch (err: unknown) {
+      throw JobOSError.dataLoss({
+        domain: "job_os.import",
+        reason: "PDF_PARSE_FAILED",
+        location: "lib/import/parse-document.ts:extractPdfText",
+        message:
+          "Could not parse this PDF file. It may be corrupt or encrypted. Try re-saving it or paste your resume below.",
+        remedy: "Re-save the PDF without password protection, or copy and paste the text directly.",
+        cause: err,
+      });
     }
     const { text, hasTextLayer } = result;
     if (!hasTextLayer) {
-      throw new Error(
-        "This PDF has little or no selectable text. It may be a scanned image. " +
+      throw JobOSError.invalidArgument({
+        domain: "job_os.import",
+        reason: "PDF_NO_TEXT_LAYER",
+        location: "lib/import/parse-document.ts:extractPdfText",
+        message:
+          "This PDF has little or no selectable text. It may be a scanned image. " +
           "Export a text-based PDF from Word or Google Docs, or paste your resume below.",
-      );
+        remedy: "Export as a vector or text-based PDF from your document editor so text is selectable.",
+      });
     }
     if (text.length < MIN_TEXT_CHARS) {
-      throw new Error(
-        "Could not extract enough text from this PDF. Try a different export or paste your resume below.",
-      );
+      throw JobOSError.invalidArgument({
+        domain: "job_os.import",
+        reason: "INSUFFICIENT_TEXT",
+        location: "lib/import/parse-document.ts:extractPdfText",
+        message:
+          "Could not extract enough text from this PDF. Try a different export or paste your resume below.",
+        remedy: "Confirm the document contains actual text paragraphs rather than non-text graphics.",
+        metadata: { charCount: text.length, minRequired: MIN_TEXT_CHARS },
+      });
     }
     return {
       rawText: text,
@@ -126,9 +168,15 @@ export async function parseResumeDocument(file: File): Promise<ParsedResumeDocum
 
   const text = await extractDocxText(buffer);
   if (text.length < MIN_TEXT_CHARS) {
-    throw new Error(
-      "Could not extract enough text from this Word document. Try re-saving as .docx or paste your resume below.",
-    );
+    throw JobOSError.invalidArgument({
+      domain: "job_os.import",
+      reason: "INSUFFICIENT_TEXT",
+      location: "lib/import/parse-document.ts:extractDocxText",
+      message:
+        "Could not extract enough text from this Word document. Try re-saving as .docx or paste your resume below.",
+      remedy: "Confirm the document contains actual text paragraphs.",
+      metadata: { charCount: text.length, minRequired: MIN_TEXT_CHARS },
+    });
   }
 
   return {
