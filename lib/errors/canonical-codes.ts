@@ -1,0 +1,58 @@
+/**
+ * Canonical error codes aligned with Google Cloud API and gRPC specifications (AIP-193).
+ * Provides unambiguous status classifications across all subsystems.
+ */
+
+export type CanonicalErrorCode =
+  | "OK"
+  | "CANCELLED"
+  | "UNKNOWN"
+  | "INVALID_ARGUMENT"
+  | "DEADLINE_EXCEEDED"
+  | "NOT_FOUND"
+  | "ALREADY_EXISTS"
+  | "PERMISSION_DENIED"
+  | "RESOURCE_EXHAUSTED"
+  | "FAILED_PRECONDITION"
+  | "ABORTED"
+  | "OUT_OF_RANGE"
+  | "UNIMPLEMENTED"
+  | "INTERNAL"
+  | "UNAVAILABLE"
+  | "DATA_LOSS"
+  | "UNAUTHENTICATED";
+
+export const HTTP_STATUS_TO_CANONICAL: Record<number, CanonicalErrorCode> = {
+  200: "OK",
+  400: "INVALID_ARGUMENT",
+  401: "UNAUTHENTICATED",
+  403: "PERMISSION_DENIED",
+  404: "NOT_FOUND",
+  409: "ALREADY_EXISTS",
+  429: "RESOURCE_EXHAUSTED",
+  499: "CANCELLED",
+  500: "INTERNAL",
+  501: "UNIMPLEMENTED",
+  503: "UNAVAILABLE",
+  504: "DEADLINE_EXCEEDED",
+};
+
+export const CANONICAL_TO_HTTP_STATUS: Record<CanonicalErrorCode, number> = {
+  OK: 200,
+  CANCELLED: 499,
+  UNKNOWN: 500,
+  INVALID_ARGUMENT: 400,
+  DEADLINE_EXCEEDED: 504,
+  NOT_FOUND: 404,
+  ALREADY_EXISTS: 409,
+  PERMISSION_DENIED: 403,
+  RESOURCE_EXHAUSTED: 429,
+  FAILED_PRECONDITION: 400,
+  ABORTED: 409,
+  OUT_OF_RANGE: 400,
+  UNIMPLEMENTED: 501,
+  INTERNAL: 500,
+  UNAVAILABLE: 503,
+  DATA_LOSS: 500,
+  UNAUTHENTICATED: 401,
+};

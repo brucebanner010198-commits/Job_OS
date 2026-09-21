@@ -1,5 +1,39 @@
 import { getSecret } from "@/lib/secrets";
 import { MODELS, type ModelTier, type TaskName, modelForTask } from "./models";
+import { JobOSError } from "@/lib/errors/job-os-error";
+import { HTTP_STATUS_TO_CANONICAL } from "@/lib/errors/canonical-codes";
+
+function createProviderError(options: {
+  provider: string;
+  model: string;
+  status: number;
+  detail: string;
+  location: string;
+}): JobOSError {
+  const code = HTTP_STATUS_TO_CANONICAL[options.status] ?? "UNAVAILABLE";
+  let remedy = "Check provider status or select a different model in Integrations.";
+  if (options.status === 401 || options.status === 403) {
+    remedy = `Verify that your ${options.provider} API key is valid in Integrations.`;
+  } else if (options.status === 429) {
+    remedy = `Rate limit or credits exhausted on ${options.provider}. Check your account quota.`;
+  } else if (options.status === 404) {
+    remedy = `The requested model (${options.model}) was not found by ${options.provider}. Select an available model in Integrations.`;
+  }
+
+  return new JobOSError({
+    code,
+    domain: "job_os.ai",
+    reason: `${options.provider.toUpperCase()}_API_ERROR`,
+    location: options.location,
+    message: `${options.provider} API error (${options.status}): ${options.detail.slice(0, 300) || "No response text."}`,
+    remedy,
+    metadata: {
+      provider: options.provider,
+      model: options.model,
+      statusCode: options.status,
+    },
+  });
+}
 
 export type ProviderKind = "openrouter" | "ollama" | "openai" | "anthropic" | "gemini";
 
@@ -140,7 +174,13 @@ async function chatOllama(opts: ChatOptions, baseUrl: string): Promise<ChatResul
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`Local Ollama error (${res.status}): ${detail.slice(0, 400)}`);
+    throw createProviderError({
+      provider: "Ollama",
+      model,
+      status: res.status,
+      detail,
+      location: "lib/ai/providers.ts:chatOllama",
+    });
   }
 
   const data = await res.json();
@@ -154,7 +194,15 @@ async function chatOllama(opts: ChatOptions, baseUrl: string): Promise<ChatResul
 
 async function chatOpenRouter(opts: ChatOptions, apiKey: string): Promise<ChatResult> {
   if (!apiKey) {
-    throw new Error("No AI API key found. Configure OpenRouter, Gemini, OpenAI, Anthropic, or Ollama in Integrations.");
+    throw JobOSError.failedPrecondition({
+      domain: "job_os.ai",
+      reason: "MISSING_API_KEY",
+      location: "lib/ai/providers.ts:chatOpenRouter",
+      message:
+        "No AI API key found. Configure OpenRouter, Gemini, OpenAI, Anthropic, or Ollama in Integrations.",
+      remedy:
+        "Navigate to Integrations (/integrations) and enter an API key for your chosen provider or start a local Ollama instance.",
+    });
   }
 
   const model = resolveModel(opts);
@@ -183,7 +231,13 @@ async function chatOpenRouter(opts: ChatOptions, apiKey: string): Promise<ChatRe
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`OpenRouter ${res.status} (${model}): ${detail.slice(0, 500)}`);
+    throw createProviderError({
+      provider: "OpenRouter",
+      model,
+      status: res.status,
+      detail,
+      location: "lib/ai/providers.ts:chatOpenRouter",
+    });
   }
 
   const data = await res.json();
@@ -215,7 +269,13 @@ async function chatOpenAI(opts: ChatOptions, apiKey: string): Promise<ChatResult
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`OpenAI ${res.status}: ${detail.slice(0, 500)}`);
+    throw createProviderError({
+      provider: "OpenAI",
+      model,
+      status: res.status,
+      detail,
+      location: "lib/ai/providers.ts:chatOpenAI",
+    });
   }
 
   const data = await res.json();
@@ -257,7 +317,13 @@ async function chatGemini(opts: ChatOptions, apiKey: string): Promise<ChatResult
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`Gemini API ${res.status}: ${detail.slice(0, 500)}`);
+    throw createProviderError({
+      provider: "Gemini",
+      model,
+      status: res.status,
+      detail,
+      location: "lib/ai/providers.ts:chatGemini",
+    });
   }
 
   const data = await res.json();
@@ -296,7 +362,13 @@ async function chatAnthropic(opts: ChatOptions, apiKey: string): Promise<ChatRes
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`Anthropic ${res.status}: ${detail.slice(0, 500)}`);
+    throw createProviderError({
+      provider: "Anthropic",
+      model,
+      status: res.status,
+      detail,
+      location: "lib/ai/providers.ts:chatAnthropic",
+    });
   }
 
   const data = await res.json();
