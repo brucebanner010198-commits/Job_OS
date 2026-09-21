@@ -1,0 +1,6 @@
+browser-use>=0.13.0
+playwright>=1.49.0
+langchain-openai>=0.3.0
+pydantic>=2.10.0
+python-dotenv>=1.0.0
+pillow>=11.0.0
