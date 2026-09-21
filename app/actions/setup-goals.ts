@@ -7,6 +7,8 @@ import { chat } from "@/lib/ai/openrouter";
 import { db } from "@/lib/db";
 import type { CareerGoalData } from "@/lib/goals/types";
 
+import { requireAccessForMutation, requireAccessForRead } from "@/lib/auth/require-access";
+
 export interface RoleRecommendation {
   title: string;
   matchScore: number; // 0 to 100
@@ -23,6 +25,7 @@ export interface RecommendationResponse {
  * Recommends target job roles based on the uploaded master CV facts.
  */
 export async function getRoleRecommendationsAction(): Promise<RecommendationResponse> {
+  await requireAccessForRead();
   const { scope } = await getAppContext();
   const profileText = await nonSensitiveProfileText(scope);
 
@@ -81,6 +84,7 @@ export async function saveVisionAndGoalsAction(input: {
   maxDailyApplications: number;
   searchCadenceDays: number;
 }): Promise<{ success: boolean }> {
+  await requireAccessForMutation();
   const { scope, user } = await getAppContext();
 
   const existing = await getGoal(scope);

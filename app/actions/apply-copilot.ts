@@ -6,6 +6,8 @@ import { nonSensitive } from "@/lib/ai/redaction";
 import { flattenFact } from "@/lib/profile/types";
 import { chat } from "@/lib/ai/openrouter";
 
+import { requireAccessForRead } from "@/lib/auth/require-access";
+
 export interface CopilotAnswerResult {
   query: string;
   extractedSnippet: string;
@@ -17,6 +19,7 @@ export async function askCopilotAction(input: {
   jobTitle: string;
   company: string;
 }): Promise<CopilotAnswerResult> {
+  await requireAccessForRead();
   const { scope } = await getAppContext();
   const entries = await listFacts(scope);
   const facts = toFacts(nonSensitive(entries));

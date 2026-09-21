@@ -3,6 +3,8 @@
 import { getSecret, setSecret } from "@/lib/secrets";
 import { revalidatePath } from "next/cache";
 
+import { requireAccessForMutation, requireAccessForRead } from "@/lib/auth/require-access";
+
 export interface LlmConfigState {
   modelPreference: "local" | "paid" | "both";
   defaultTier: "local" | "paid";
@@ -14,6 +16,7 @@ export interface LlmConfigState {
 }
 
 export async function getLlmConfigAction(): Promise<LlmConfigState> {
+  await requireAccessForRead();
   const modelPreference = ((await getSecret("AI_MODEL_PREFERENCE")) as "local" | "paid" | "both") || "both";
   const defaultTier = ((await getSecret("AI_DEFAULT_TIER")) as "local" | "paid") || "local";
   const ollamaUrl = (await getSecret("OLLAMA_BASE_URL")) || "http://localhost:11434";
@@ -40,6 +43,7 @@ export async function saveLlmConfigAction(input: {
   ollamaUrl?: string;
   apiKey?: { provider: "openai" | "anthropic" | "gemini" | "openrouter"; key: string };
 }): Promise<{ success: boolean; message: string }> {
+  await requireAccessForMutation();
   await setSecret("AI_MODEL_PREFERENCE", input.modelPreference);
   await setSecret("AI_DEFAULT_TIER", input.defaultTier);
 
@@ -65,6 +69,7 @@ export async function probeLocalLlmAction(url: string = "http://localhost:11434"
   online: boolean;
   models: string[];
 }> {
+  await requireAccessForRead();
   try {
     const cleanUrl = url.replace(/\/v1$/, "").replace(/\/$/, "");
     const res = await fetch(`${cleanUrl}/api/tags`, {

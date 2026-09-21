@@ -8,9 +8,12 @@ import {
   type CertificationView,
 } from "@/lib/certifications/vault";
 
+import { requireAccessForMutation, requireAccessForRead } from "@/lib/auth/require-access";
+
 export async function uploadCertificationAction(
   formData: FormData,
 ): Promise<CertificationView> {
+  await requireAccessForMutation();
   const file = formData.get("file");
   if (!(file instanceof File)) {
     throw new Error("Please select a certification document or PDF file.");
@@ -39,6 +42,7 @@ export async function uploadCertificationAction(
 }
 
 export async function listCertificationsAction(): Promise<CertificationView[]> {
+  await requireAccessForRead();
   const { scope } = await getAppContext();
   return listCertificationDocuments(scope);
 }

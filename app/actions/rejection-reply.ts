@@ -5,6 +5,7 @@ import { buildRejectionReply, type RejectionReplyDraft } from "@/lib/track/rejec
 import { listFacts, toFacts } from "@/lib/profile/service";
 import { nonSensitive } from "@/lib/ai/redaction";
 import { getAccessToken } from "@/lib/gmail/oauth";
+import { requireAccessForMutation, requireAccessForRead } from "@/lib/auth/require-access";
 
 export async function generateRejectionReplyAction(input: {
   company: string;
@@ -12,6 +13,7 @@ export async function generateRejectionReplyAction(input: {
   originalSubject?: string;
   recruiterName?: string;
 }): Promise<RejectionReplyDraft> {
+  await requireAccessForRead();
   const { scope, user } = await getAppContext();
   const entries = await listFacts(scope);
   const facts = toFacts(nonSensitive(entries));
@@ -34,6 +36,7 @@ export async function sendRejectionReplyAction(input: {
   body: string;
   threadId?: string;
 }): Promise<{ success: boolean; message: string }> {
+  await requireAccessForMutation();
   const { scope } = await getAppContext();
   const token = await getAccessToken(scope.profileId);
 

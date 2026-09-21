@@ -225,23 +225,25 @@ async function main(): Promise<void> {
       providedToken: token,
     }).kind === "allow",
   );
+  const resBearer1 = evaluateProxyGate({
+    pathname: "/api/backup/export",
+    host: lanHost,
+    providedToken: token,
+    existingCookieToken: null,
+  });
   check(
     "valid Bearer on LAN persists httpOnly cookie when absent",
-    evaluateProxyGate({
-      pathname: "/api/backup/export",
-      host: lanHost,
-      providedToken: token,
-      existingCookieToken: null,
-    }).persistCookie === token,
+    resBearer1.kind === "allow" && resBearer1.persistCookie === token,
   );
+  const resBearer2 = evaluateProxyGate({
+    pathname: "/api/backup/export",
+    host: lanHost,
+    providedToken: token,
+    existingCookieToken: token,
+  });
   check(
     "valid Bearer skips cookie write when cookie already matches",
-    evaluateProxyGate({
-      pathname: "/api/backup/export",
-      host: lanHost,
-      providedToken: token,
-      existingCookieToken: token,
-    }).persistCookie === undefined,
+    resBearer2.kind === "allow" && resBearer2.persistCookie === undefined,
   );
   check(
     "Gmail OAuth auth path stays exempt on LAN",
