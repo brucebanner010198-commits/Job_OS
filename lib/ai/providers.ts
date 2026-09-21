@@ -56,8 +56,12 @@ export async function universalChat(opts: ChatOptions): Promise<ChatResult> {
   const anthropicKey = (await getSecret("ANTHROPIC_API_KEY")) || process.env.ANTHROPIC_API_KEY;
   const openrouterKey = (await getSecret("OPENROUTER_API_KEY")) || process.env.OPENROUTER_API_KEY;
 
+  // Model preference configuration
+  const modelPreference = (await getSecret("AI_MODEL_PREFERENCE")) || "both"; // "local" | "paid" | "both"
+  const defaultTier = (await getSecret("AI_DEFAULT_TIER")) || "local"; // "local" | "paid"
+
   let effectiveLocalUrl = localUrl;
-  if (!effectiveLocalUrl && !geminiKey && !openaiKey && !anthropicKey) {
+  if (!effectiveLocalUrl) {
     try {
       const probe = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(500) });
       if (probe.ok) {
@@ -68,15 +72,22 @@ export async function universalChat(opts: ChatOptions): Promise<ChatResult> {
     }
   }
 
+  // Priority rule: If local model is selected as default, it remains the main model and paid ones are turned off.
+  if (modelPreference === "local" || (modelPreference === "both" && defaultTier === "local")) {
+    const url = effectiveLocalUrl ?? "http://localhost:11434/v1";
+    return chatOllama(opts, url);
+  }
+
+  // Otherwise paid models are primary
   const targetProvider = opts.provider ?? (
-    effectiveLocalUrl ? "ollama" :
     geminiKey ? "gemini" :
     openaiKey ? "openai" :
     anthropicKey ? "anthropic" :
-    "openrouter"
+    openrouterKey ? "openrouter" :
+    (effectiveLocalUrl ? "ollama" : "openrouter")
   );
 
-  if (targetProvider === "ollama" || (effectiveLocalUrl && !opts.provider)) {
+  if (targetProvider === "ollama") {
     return chatOllama(opts, effectiveLocalUrl ?? "http://localhost:11434/v1");
   }
 

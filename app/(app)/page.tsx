@@ -17,6 +17,7 @@ import {
 } from "@/lib/pipeline/setup-status";
 import { stageById } from "@/lib/pipeline/stages";
 import { cn } from "@/lib/utils";
+import { EmployedModeWidget } from "@/components/career/employed-mode-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -169,6 +170,12 @@ export default async function DashboardPage() {
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">{autopilot.summary}</p>
+
+        {setup.complete && (
+          <div className="mx-auto mt-8 max-w-md text-left">
+            <EmployedModeWidget />
+          </div>
+        )}
 
         {adapterNotes.length > 0 && (
           <div className="mx-auto mt-8 max-w-md border-t border-border/60 pt-6 text-left">

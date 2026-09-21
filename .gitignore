@@ -15,6 +15,7 @@ next-env.d.ts
 
 # local data — NEVER commit (master profile, tokens, browser profile, backups)
 /data/
+/storage/
 *.local
 
 # secrets

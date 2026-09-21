@@ -56,6 +56,22 @@ export async function runAutopilotCycle(scope: AppScope): Promise<AutopilotRunRe
   const query = await discoveryQueryForUser(scope);
   details.push(`discovery query: ${query}`);
 
+  // Dynamic master resume compilation before tailoring
+  try {
+    const { compileWeeklyWorkLogs } = await import("@/lib/journal/service");
+    const compiled = await compileWeeklyWorkLogs(scope);
+    if (compiled.compiledCount > 0) {
+      details.push(`dynamically compiled ${compiled.compiledCount} journal milestones into master CV`);
+    }
+  } catch (compileErr) {
+    // Non-fatal compile fallback
+  }
+
+  const { db } = await import("@/lib/db");
+  const user = await db.user.findUnique({ where: { id: scope.userId } });
+  const cadence = (user?.cadenceConfig as { maxDailyApplications?: number }) ?? {};
+  const maxDaily = cadence.maxDailyApplications ?? DEFAULT_AUTOPILOT_POLICY.maxAutoSubmitsPerRun;
+
   const resumeText = await nonSensitiveProfileText(scope);
 
   const discovery = await ingestAndScore(scope, query);
@@ -73,6 +89,10 @@ export async function runAutopilotCycle(scope: AppScope): Promise<AutopilotRunRe
   let stoppedAtReview = 0;
 
   for (const job of top) {
+    if (autoSubmitted >= maxDaily) {
+      details.push(`Daily application limit (${maxDaily}) reached for cadence setting.`);
+      break;
+    }
     try {
       await ensureBrief(scope, {
         name: job.company,

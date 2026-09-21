@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   X,
   ExternalLink,
@@ -13,10 +13,16 @@ import {
   ClipboardList,
   CheckSquare,
   Square,
+  Bot,
+  Send,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { askCopilotAction, type CopilotAnswerResult } from "@/app/actions/apply-copilot";
 
 export interface ApplicationLaunchpadProps {
   isOpen: boolean;
@@ -30,6 +36,7 @@ export interface ApplicationLaunchpadProps {
   resumeSummary?: string;
   topSkills?: string[];
   referralContact?: string | null;
+  onMarkSubmitted?: () => void;
 }
 
 export function ApplicationLaunchpad({
@@ -44,9 +51,16 @@ export function ApplicationLaunchpad({
   resumeSummary,
   topSkills = [],
   referralContact,
+  onMarkSubmitted,
 }: ApplicationLaunchpadProps) {
   const [copiedCover, setCopiedCover] = useState(false);
   const [copiedSummary, setCopiedSummary] = useState(false);
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [copilotSnippet, setCopilotSnippet] = useState<string | null>(null);
+  const [copiedCopilot, setCopiedCopilot] = useState(false);
+  const [isCopilotPending, startCopilotTransition] = useTransition();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
   const [checklist, setChecklist] = useState({
     referralChecked: false,
     resumeTailored: false,
@@ -70,8 +84,37 @@ export function ApplicationLaunchpad({
     setTimeout(() => setCopiedSummary(false), 2000);
   }
 
+  async function copyCopilotSnippet() {
+    if (!copilotSnippet) return;
+    await navigator.clipboard.writeText(copilotSnippet);
+    setCopiedCopilot(true);
+    setTimeout(() => setCopiedCopilot(false), 2000);
+  }
+
+  function handleQuickChip(promptText: string) {
+    setCopilotQuery(promptText);
+    runCopilotQuery(promptText);
+  }
+
+  function runCopilotQuery(queryText: string) {
+    if (!queryText.trim()) return;
+    startCopilotTransition(async () => {
+      const res = await askCopilotAction({
+        query: queryText,
+        jobTitle,
+        company,
+      });
+      setCopilotSnippet(res.extractedSnippet);
+    });
+  }
+
   function toggleCheck(key: keyof typeof checklist) {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function handleMarkSubmitted() {
+    setIsSubmitted(true);
+    onMarkSubmitted?.();
   }
 
   const defaultCover =
@@ -89,10 +132,10 @@ export function ApplicationLaunchpad({
         <div className="flex items-start justify-between border-b border-border p-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-accent text-xs font-bold">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
                 🚀
               </span>
-              <h2 className="text-lg font-semibold text-foreground">Application Launchpad</h2>
+              <h2 className="text-lg font-semibold text-foreground">Application Copilot & Launchpad</h2>
               {fresh && (
                 <Badge variant="success" className="text-[10px]">
                   &lt;72h Early Advantage
@@ -125,12 +168,102 @@ export function ApplicationLaunchpad({
 
         {/* Content Body */}
         <div className="flex-1 space-y-5 overflow-y-auto p-5 text-sm">
-          {/* Empirical Insight Banner */}
-          <div className="rounded-lg border border-accent/20 bg-accent/5 p-3.5 text-xs text-foreground">
-            <strong>Single-screen workflow:</strong> Cognitive load studies (Sweller, 1988; Nielsen Norman Group) show that multi-tab switching causes over 30% of application form submission errors. Use this launchpad to copy verified materials directly into the employer portal.
+          {/* Submission Completion Alert */}
+          {isSubmitted && (
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-semibold text-xs uppercase tracking-wider">Application Complete!</div>
+                <p className="text-xs">
+                  Your application for {jobTitle} at {company} is now recorded as applied. The email integration will
+                  automatically monitor for interview invitations, assessments, and status updates.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Form Assistant Copilot */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-medium text-xs text-foreground uppercase tracking-wider">
+                <Bot className="h-4 w-4 text-primary" />
+                <span>Form Copilot (Ask & Fast Copy)</span>
+              </div>
+              <Badge variant="outline" className="text-[10px]">
+                Master Resume Extractor
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Filling out an external portal? Ask for any information (e.g. education, specific experience, leadership highlights) and copy it with one click.
+            </p>
+
+            {/* Quick Chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: "Education qualification", q: "I need education qualification information" },
+                { label: "Experience summary", q: "Summary of job experience" },
+                { label: "Top technical skills", q: "List of top technical skills and tools" },
+                { label: "Why this company", q: "Why I am interested in this role" },
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => handleQuickChip(chip.q)}
+                  className="rounded-md border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Query Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                runCopilotQuery(copilotQuery);
+              }}
+              className="flex gap-2"
+            >
+              <Input
+                value={copilotQuery}
+                onChange={(e) => setCopilotQuery(e.target.value)}
+                placeholder="Ask e.g. 'I need education qualification'..."
+                className="text-xs h-8"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isCopilotPending || !copilotQuery.trim()}
+                className="h-8 gap-1 text-xs shrink-0"
+              >
+                {isCopilotPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                Extract
+              </Button>
+            </form>
+
+            {/* Copilot Snippet Result */}
+            {copilotSnippet && (
+              <div className="rounded-lg border border-border bg-background p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-muted-foreground">Extracted from Master Profile:</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={copyCopilotSnippet}
+                    className="h-6 gap-1 text-[11px]"
+                  >
+                    {copiedCopilot ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    {copiedCopilot ? "Copied to clipboard" : "Copy to clipboard"}
+                  </Button>
+                </div>
+                <p className="text-xs font-mono text-foreground whitespace-pre-wrap leading-relaxed bg-muted/20 p-2 rounded">
+                  {copilotSnippet}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Warm Path Check (Empirical referral priority) */}
+          {/* Warm Path Referral Check */}
           <div className="rounded-xl border border-border bg-background/50 p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 font-medium">
@@ -142,7 +275,7 @@ export function ApplicationLaunchpad({
               </Badge>
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              NBER labor studies show internal referrals achieve <strong>25%–60% interview rates</strong> versus <strong>2%–5% for cold applications</strong>.
+              Internal referrals achieve <strong>25%–60% interview rates</strong> versus <strong>2%–5% for cold applications</strong>.
             </p>
             <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-muted/40 p-2.5 text-xs">
               <span>{referralContact ? `Contact available at ${company}: ${referralContact}` : `Search your network for 1st/2nd-degree connections at ${company}.`}</span>
@@ -158,7 +291,7 @@ export function ApplicationLaunchpad({
           <div className="rounded-xl border border-border bg-background/50 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-medium">
-                <Sparkles className="h-4 w-4 text-accent" />
+                <Sparkles className="h-4 w-4 text-primary" />
                 <span>Recruiter 30-Second Pitch</span>
               </div>
               <Button
@@ -180,7 +313,7 @@ export function ApplicationLaunchpad({
           <div className="rounded-xl border border-border bg-background/50 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-medium">
-                <FileText className="h-4 w-4 text-accent" />
+                <FileText className="h-4 w-4 text-primary" />
                 <span>Tailored Cover Letter</span>
               </div>
               <Button
@@ -262,27 +395,42 @@ export function ApplicationLaunchpad({
           </div>
         </div>
 
-        {/* Footer with Apply Link */}
+        {/* Footer with Apply Link and Completion Trigger */}
         <div className="border-t border-border bg-card p-5 flex items-center justify-between gap-3">
           <Button variant="outline" size="sm" onClick={onClose}>
             Close
           </Button>
 
-          {jobUrl ? (
-            <a
-              href={jobUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground shadow hover:bg-accent/90"
-            >
-              Open Application Portal
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              Direct application URL not specified in posting.
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {!isSubmitted ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMarkSubmitted}
+                className="gap-1.5 text-xs"
+              >
+                <Check className="h-3.5 w-3.5" />
+                Mark as Applied
+              </Button>
+            ) : (
+              <Badge variant="success" className="text-xs gap-1 py-1">
+                <Check className="h-3.5 w-3.5" />
+                Applied & Tracked
+              </Badge>
+            )}
+
+            {jobUrl && (
+              <a
+                href={jobUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground shadow hover:bg-primary/90"
+              >
+                Open Application Portal
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>

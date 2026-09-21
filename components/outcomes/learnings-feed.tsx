@@ -3,9 +3,11 @@
  */
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Lightbulb, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RejectionLearningView } from "@/lib/track/learnings-view";
 
@@ -51,14 +53,98 @@ function LearningCard({ item }: { item: RejectionLearningView }) {
         </ul>
       )}
 
-      <p className="mt-2 text-[10px] text-muted-foreground">
-        {new Date(item.createdAt).toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })}
-        {item.signals.length > 0 && ` · signals: ${item.signals.slice(0, 2).join(", ")}`}
-      </p>
+      <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+        <p className="text-[10px] text-muted-foreground">
+          {new Date(item.createdAt).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+          {item.signals.length > 0 && ` · signals: ${item.signals.slice(0, 2).join(", ")}`}
+        </p>
+
+        <ReplyDrawer company={item.company} role={item.role} />
+      </div>
+    </div>
+  );
+}
+
+function ReplyDrawer({ company, role }: { company: string; role: string }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<{ subject: string; body: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [sentNotice, setSentNotice] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function handleOpen() {
+    setOpen(true);
+    if (!draft) {
+      startTransition(async () => {
+        const { generateRejectionReplyAction } = await import("@/app/actions/rejection-reply");
+        const res = await generateRejectionReplyAction({ company, jobTitle: role });
+        setDraft(res);
+      });
+    }
+  }
+
+  async function handleCopy() {
+    if (!draft) return;
+    await navigator.clipboard.writeText(draft.body);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleSend() {
+    if (!draft) return;
+    startTransition(async () => {
+      const { sendRejectionReplyAction } = await import("@/app/actions/rejection-reply");
+      const res = await sendRejectionReplyAction({
+        toEmail: `${company.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.com`,
+        subject: draft.subject,
+        body: draft.body,
+      });
+      setSentNotice(res.message);
+    });
+  }
+
+  if (!open) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={handleOpen}
+        className="h-6 text-[11px] text-primary hover:text-primary/90"
+      >
+        Send polite reply →
+      </Button>
+    );
+  }
+
+  return (
+    <div className="mt-2 w-full rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2 text-xs">
+      <div className="flex items-center justify-between font-medium text-foreground">
+        <span>Polite Rejection Acknowledgment:</span>
+        <div className="flex gap-1.5">
+          <Button size="sm" variant="ghost" onClick={handleCopy} className="h-6 text-[10px]">
+            {copied ? "Copied" : "Copy text"}
+          </Button>
+          <Button size="sm" onClick={handleSend} disabled={pending} className="h-6 text-[10px]">
+            {pending ? "Sending..." : "Send reply"}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-[10px]">
+            Close
+          </Button>
+        </div>
+      </div>
+      {sentNotice ? (
+        <p className="text-emerald-500 font-medium">{sentNotice}</p>
+      ) : draft ? (
+        <pre className="whitespace-pre-wrap rounded bg-background p-2 font-mono text-[11px] text-muted-foreground border border-border">
+          {draft.body}
+        </pre>
+      ) : (
+        <p className="text-muted-foreground">Drafting personalized polite reply...</p>
+      )}
     </div>
   );
 }

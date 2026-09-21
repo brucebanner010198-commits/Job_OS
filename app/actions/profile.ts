@@ -93,8 +93,23 @@ export async function uploadResumeFileAction(
     throw new Error("No file uploaded. Choose a PDF or Word (.docx) resume.");
   }
 
-  const parsed = await parseResumeDocument(file);
   const { scope } = await getAppContext();
+
+  // Save the master resume binary locally
+  try {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const dir = path.join(process.cwd(), "storage", "master-resumes");
+    await fs.mkdir(dir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
+    const targetPath = path.join(dir, `${scope.userId}_${Date.now()}_${safeName}`);
+    await fs.writeFile(targetPath, buffer);
+  } catch (err) {
+    console.warn("[uploadResumeFileAction] Local file backup warning:", err);
+  }
+
+  const parsed = await parseResumeDocument(file);
   const res = await importResumeText(scope, parsed.rawText);
 
   if (res.added > 0) {
