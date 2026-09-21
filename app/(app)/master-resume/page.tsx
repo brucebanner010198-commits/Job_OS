@@ -5,6 +5,7 @@ import { safeDb } from "@/lib/safe";
 import { DbBanner } from "@/components/db-banner";
 import { PageHeader } from "@/components/page-header";
 import { DictationPanel } from "@/components/master-resume/dictation-panel";
+import { CertificationVaultCard } from "@/components/master-resume/certification-vault-card";
 import { MasterResumeWorkspace } from "@/components/master-resume/master-resume-workspace";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,10 @@ export default async function MasterResumePage() {
 
       <DictationPanel />
 
+      <CertificationVaultCard />
+
       <MasterResumeWorkspace facts={facts} />
     </main>
   );
 }
+

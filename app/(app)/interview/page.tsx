@@ -95,6 +95,15 @@ export default async function InterviewPage() {
       </section>
 
       {/* Prep cards - the client board owns the mode picker + live session. */}
+      {board.preps.length > 0 && (
+        <div className="mb-8">
+          <InterviewIntelligencePanelSection
+            company={board.preps[0].company}
+            role={board.preps[0].role ?? "Software Engineer"}
+          />
+        </div>
+      )}
+
       <InterviewBoard
         preps={board.preps}
         voice={board.voice}
@@ -103,5 +112,35 @@ export default async function InterviewPage() {
         readOnly={usePreview}
       />
     </main>
+  );
+}
+
+async function InterviewIntelligencePanelSection({
+  company,
+  role,
+}: {
+  company: string;
+  role: string;
+}) {
+  const { scope } = await getAppContext();
+  const { getCompanyInterviewIntel } = await import("@/lib/interview/company-research");
+  const { analyzeSkillGapsAndCurateLessons } = await import("@/lib/interview/skill-gaps");
+  const { listSimulationReports } = await import("@/lib/interview/simulation-rounds");
+  const { InterviewIntelligencePanel } = await import("@/components/interview/interview-intelligence-panel");
+
+  const [intel, gapAnalysis, reports] = await Promise.all([
+    getCompanyInterviewIntel(company, role),
+    analyzeSkillGapsAndCurateLessons(scope, "", company, role),
+    listSimulationReports(scope, company),
+  ]);
+
+  return (
+    <InterviewIntelligencePanel
+      company={company}
+      role={role}
+      intel={intel}
+      lessons={gapAnalysis.lessons}
+      reports={reports}
+    />
   );
 }

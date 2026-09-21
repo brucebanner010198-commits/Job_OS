@@ -17,6 +17,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  username     String?  @unique
+  passwordHash String?
+  cadenceConfig Json?
+
   profileEntries ProfileEntry[]
   profileNotes   ProfileNote[]
   jobs           Job[]
@@ -44,6 +48,8 @@ model User {
   textEmbeddings    TextEmbedding[]
   workLogEntries    WorkLogEntry[]
   candidateBullets  CandidateBullet[]
+  certificationDocuments CertificationDocument[]
+  simulationRounds       InterviewSimulationRound[]
 }
 
 // Named identity within one install (e.g. "Sam", "Alex"). Career data is scoped
@@ -83,6 +89,8 @@ model Profile {
   applySessions      ApplySession[]
   workLogEntries     WorkLogEntry[]
   candidateBullets   CandidateBullet[]
+  certificationDocuments CertificationDocument[]
+  simulationRounds       InterviewSimulationRound[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -894,3 +902,47 @@ model CandidateBullet {
   @@index([userId, approved])
   @@index([profileId, approved])
 }
+
+// Locally stored certification files, project portfolios, and verified credentials
+model CertificationDocument {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId      String
+  profile        Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title          String
+  issuer         String?
+  issueDate      DateTime?
+  credentialUrl  String?
+  localFilePath  String
+  fileSize       Int
+  mimeType       String
+  profileEntryId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, profileId])
+}
+
+// Multi-round mock interview simulation records and improvement reports (rounds 1 to 4)
+model InterviewSimulationRound {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId       String
+  profile         Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  company         String
+  role            String
+  mode            String    // "AI_SCREEN" | "REAL_HR"
+  roundNumber     Int       @default(1) // 1 to 4
+  overallScore    Int
+  categoryScores  Json      // { clarity: number, technicalDepth: number, brevity: number, leadership: number }
+  strengths       String[]
+  weaknesses      String[]
+  recommendations String[]
+  reportMarkdown  String
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, profileId, company])
+}
+

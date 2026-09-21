@@ -27,21 +27,28 @@ export type AppContextResult = AppContext & { dbError: boolean };
 
 /** Resolve active profile from cookie, falling back to Default / first profile. */
 export async function resolveActiveProfile(userId: string): Promise<Profile> {
-  const jar = await cookies();
-  const fromCookie = jar.get(PROFILE_COOKIE)?.value;
-  if (fromCookie) {
-    const found = await getProfileById(userId, fromCookie);
-    if (found) return found;
+  try {
+    const jar = await cookies();
+    const fromCookie = jar.get(PROFILE_COOKIE)?.value;
+    if (fromCookie) {
+      const found = await getProfileById(userId, fromCookie);
+      if (found) return found;
+    }
+  } catch {
+    // Outside request context
   }
   return ensureDefaultProfile(userId);
 }
+
+import { getSessionUser } from "@/lib/auth/session";
 
 /** Primary request context: install user + active named profile. */
 export async function getAppContext(): Promise<AppContext> {
   if (!(await isDatabaseReachable())) {
     throw new Error("Database unreachable");
   }
-  const user = await getPrimaryUser();
+  const sessionUser = await getSessionUser();
+  const user = sessionUser ?? (await getPrimaryUser());
   const profile = await resolveActiveProfile(user.id);
   return {
     user,
@@ -57,6 +64,9 @@ function offlineAppContext(): AppContext {
     id: OFFLINE_SCOPE_ID,
     email,
     name: null,
+    username: null,
+    passwordHash: null,
+    cadenceConfig: null,
     createdAt: now,
     updatedAt: now,
   };
