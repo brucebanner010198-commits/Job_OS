@@ -1,7 +1,7 @@
 /**
  * Cost-cap / session-guard BRAIN (Phase 8, plan §5, Hardening §E).
  * Pure - no LLM, no DB, no network, no wall-clock reads. Live voice is the one
- * variable cost in the whole system (a 30-min ElevenLabs mock ≈ $2.40–4.80 +
+ * variable cost in the whole system (a 30-min ElevenLabs mock ≈ $2.40 to $4.80 +
  * tokens), so this module is the kill-switch that stops it running up a bill.
  * The caller injects every instant as an ISO-8601 string; all time math runs off
  * `Date.parse` + millisecond offsets, so the guard is fully deterministic and

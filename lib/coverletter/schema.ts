@@ -8,7 +8,7 @@ import { z } from "zod";
  * mirrors - used to flag generic, could-be-anyone letters.
  */
 export const coverLetterDraftSchema = z.object({
-  /** The full cover letter body (3–4 short paragraphs, 250–400 words). */
+  /** The full cover letter body (3 to 4 short paragraphs, 250 to 400 words). */
   body: z.string().min(1),
   /** MasterProfile entry ids the letter is grounded in. */
   usedFactIds: z.array(z.string()),

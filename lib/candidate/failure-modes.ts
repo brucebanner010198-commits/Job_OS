@@ -32,7 +32,7 @@ export const FAILURE_MODES: FailureMode[] = [
   },
   {
     id: "fm-ats-keywords-low",
-    cause: "Lexical JD match below ~40–70% pass band",
+    cause: "Lexical JD match below ~40% to 70% pass band",
     detection: "screening-score keyword axis; computeAtsMatch on queue",
     systemFix: "Re-tailor with JD mirror; surface gaps on job card",
     owner: "tailor",

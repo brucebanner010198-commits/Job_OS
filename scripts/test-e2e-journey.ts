@@ -59,7 +59,7 @@ const NOW = new Date("2026-06-18T12:00:00Z");
 
 const FIXTURE_RESUME =
   "Jane Doe\nSenior Backend Engineer\n\n" +
-  "Acme Corp (2020–Present): Built Go microservices on Postgres; cut p95 latency 40%.\n" +
+  "Acme Corp (2020-Present): Built Go microservices on Postgres; cut p95 latency 40%.\n" +
   "Skills: Go, Postgres, distributed systems, APIs, reliability.";
 
 const FIXTURE_DICTATION =
@@ -687,7 +687,7 @@ function writeReport(): void {
   );
   if (llmGaps.length > 0) {
     fixes.push(
-      "- **LLM path (Steps 1–2)**: Configure a valid `OPENROUTER_API_KEY` via Integrations portal to exercise live resume import and dictation extraction (currently falls back to fixture seed).",
+      "- **LLM path (Steps 1 and 2)**: Configure a valid `OPENROUTER_API_KEY` via Integrations portal to exercise live resume import and dictation extraction (currently falls back to fixture seed).",
     );
   }
   if (!dbAvailable) {
@@ -720,7 +720,7 @@ function writeReport(): void {
     "",
     "## Known gaps (non-blocking)",
     "",
-    "- **Step 1–2**: Live LLM extraction (`importResumeText`, `extractFromDictation`) not exercised when OpenRouter key is missing/invalid; fixture seed validates DB persistence only.",
+    "- **Step 1 and 2**: Live LLM extraction (`importResumeText`, `extractFromDictation`) not exercised when OpenRouter key is missing/invalid; fixture seed validates DB persistence only.",
     "- **Step 6**: Uses hand-crafted resume + provenance audit, not `tailorResume()` / `generateCoverLetter()` LLM paths.",
     "- **Step 8**: Gmail runs on fixture corpus; live OAuth sync not validated in this gate.",
     "- **Step 9**: Voice session uses fixture `MOCK_SCRIPT`; ElevenLabs/Pipecat live grants not validated.",

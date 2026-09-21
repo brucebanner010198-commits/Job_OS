@@ -130,7 +130,7 @@ export const fixtureJobs: RawJob[] = [
     description:
       "GridStack Inc. is hiring a Product Manager for our Platform team. You will own " +
       "the roadmap for our core developer APIs and infrastructure products, working " +
-      "closely with engineering, design, and go-to-market. 3–5 years of product " +
+      "closely with engineering, design, and go-to-market. 3 to 5 years of product " +
       "management experience in a B2B SaaS environment required.",
     atsType: "workday",
     salaryMin: 145000,
@@ -148,7 +148,7 @@ export const fixtureJobs: RawJob[] = [
     description:
       "GridStack Inc. is hiring a Product Manager for our Platform team. You will own " +
       "the roadmap for our core developer APIs and infrastructure products, working " +
-      "closely with engineering, design, and go-to-market. 3–5 years of product " +
+      "closely with engineering, design, and go-to-market. 3 to 5 years of product " +
       "management experience in a B2B SaaS environment required.",
     atsType: "workday",
     salaryMin: 145000,
@@ -163,7 +163,7 @@ export const fixtureJobs: RawJob[] = [
     sourceId: "bigcorp-talent-community",
     url: "https://careers.bigcorpglobal.example/talent-community",
     company: "BigCorp Global",
-    title: "Software Engineer – Talent Community",
+    title: "Software Engineer: Talent Community",
     location: "Anywhere",
     remote: true,
     description:
@@ -211,7 +211,7 @@ export const fixtureJobs: RawJob[] = [
       "NovaSpark is a seed-stage startup building collaborative design tools. We're " +
       "looking for a Junior Frontend Developer eager to grow alongside a senior team. " +
       "You'll build features in React 19 and TypeScript, write unit tests, and learn " +
-      "our design system from the ground up. 0–2 years of professional experience is " +
+      "our design system from the ground up. 0 to 2 years of professional experience is " +
       "fine - we care more about curiosity and craft than tenure.",
     atsType: "greenhouse",
     salaryMin: 90000,
@@ -232,7 +232,7 @@ export const fixtureJobs: RawJob[] = [
       "DataFlow Systems processes petabyte-scale event streams for Fortune 500 clients. " +
       "As a Senior Data Engineer you will design and maintain real-time pipelines in " +
       "Apache Spark and Kafka, model dimensional data warehouses in Snowflake, and " +
-      "collaborate with analytics engineers on dbt models. 3–6 years of data " +
+      "collaborate with analytics engineers on dbt models. 3 to 6 years of data " +
       "engineering experience and strong SQL skills are expected.",
     atsType: "lever",
     salaryMin: 140000,
@@ -385,7 +385,7 @@ export const fixtureJobs: RawJob[] = [
       "contractors across North America. We are hiring a Full Stack Developer to build " +
       "new features across our React frontend and Node.js/PostgreSQL backend. You'll " +
       "own complete feature slices, write integration tests, and collaborate directly " +
-      "with customers on the features they want most. 2–4 years of full stack " +
+      "with customers on the features they want most. 2 to 4 years of full stack " +
       "experience with React and Node.js expected.",
     atsType: "ashby",
     salaryMin: 120000,

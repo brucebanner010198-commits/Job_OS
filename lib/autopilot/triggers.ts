@@ -1,5 +1,5 @@
 /**
- * Setup-complete trigger — runs discover-jobs + autopilot-cycle immediately
+ * Setup-complete trigger: runs discover-jobs and autopilot-cycle immediately
  * (same jobs the catch-up runner would run, without waiting for the next wake).
  */
 import type { AppScope } from "@/lib/profiles/types";
@@ -34,7 +34,7 @@ export async function onSetupComplete(scope: AppScope): Promise<void> {
   }
 }
 
-/** Fire-and-forget — call from server actions via next/server after(). */
+/** Fire-and-forget: call from server actions via next/server after(). */
 export function scheduleSetupCatchup(scope: AppScope): void {
   void onSetupComplete(scope).catch((err) => {
     console.error("[setup-catchup]", err);

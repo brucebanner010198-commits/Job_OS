@@ -4,7 +4,7 @@
  * Sources:
  * - Haired 10k-CV ATS study (2025): formatting/tables/keyword gaps
  * - Indeed, RecruitBPM, LockedIn: ATS parsing failures
- * - TheLadders eye-tracking (2012, replicated 2018): 6–7s initial skim
+ * - TheLadders eye-tracking (2012, replicated 2018): 6 to 7 second initial skim
  * - Careerflow, JobLabs, Curriculo: recruiter scan order & metrics
  * - Google/Amazon public career guidance: clarity, quantified impact, no gimmicks
  */
@@ -75,7 +75,7 @@ export const ATS_RULES: readonly AtsRule[] = [
     severity: "block",
     title: "Single-column layout",
     guidance:
-      "Use one column only. Multi-column layouts scramble parse order (44–52% failure in studies).",
+      "Use one column only. Multi-column layouts scramble parse order (44% to 52% failure in studies).",
   },
   {
     id: "fmt-no-tables",
@@ -107,7 +107,7 @@ export const ATS_RULES: readonly AtsRule[] = [
     severity: "warn",
     title: "Standard fonts",
     guidance:
-      "Stick to Arial, Calibri, Georgia, Times New Roman, or Verdana at 10–12pt body.",
+      "Stick to Arial, Calibri, Georgia, Times New Roman, or Verdana at 10 to 12 pt body.",
   },
   {
     id: "fmt-contact-in-body",
@@ -124,7 +124,7 @@ export const ATS_RULES: readonly AtsRule[] = [
     severity: "block",
     title: "Mirror JD terminology",
     guidance:
-      "Weave 15–20 top JD terms naturally into summary, skills, and experience - not a keyword footer.",
+      "Weave 15 to 20 top JD terms naturally into summary, skills, and experience - not a keyword footer.",
   },
   {
     id: "kw-acronym-pair",
@@ -231,11 +231,11 @@ export function screeningPromptBlock(
     pages === 1 ? ATS.onePageWordBudget : ATS.twoPageWordBudget;
 
   return `6-SECOND RECRUITER SKIM (structure - TheLadders eye-tracking, Fortune 500 norms):
-Recruiters spend ~6–7 seconds on the first pass. They scan (in order): name → headline → current company → dates → previous role → education → digits in bullets.
+Recruiters spend ~6 to 7 seconds on the first pass. They scan (in order): name → headline → current company → dates → previous role → education → digits in bullets.
 
 Mandatory layout for this resume:
 1. HEADLINE: Set headline to the TARGET role ("${jobTitle}"), not a vague label like "Professional" or only your current title.
-2. TOP-OF-FOLD METRICS: In the most recent role, put 3–4 bullets FIRST that include verbatim metrics from sources (%, $, counts, multipliers). If no metric exists in sources for a bullet, use a strong CAR/PAR bullet instead - never invent numbers.
+2. TOP-OF-FOLD METRICS: In the most recent role, put 3 to 4 bullets FIRST that include verbatim metrics from sources (%, $, counts, multipliers). If no metric exists in sources for a bullet, use a strong CAR/PAR bullet instead - never invent numbers.
 3. SCANNABLE DENSITY: ≤${ATS.maxBulletsPerRole} bullets/role; ≤${ATS.maxWordsPerBullet} words/bullet; ~${wordBudget} words total for ${pages} page(s).
 4. KEYWORD FIT: Mirror JD terminology where honestly supported; include acronym+full-term on first use; never repeat any term >${ATS.maxKeywordRepeat}×.
 5. DATES & TITLES: MM/YYYY or Present; reverse-chronological; title + company + date range visible without scrolling on page 1.

@@ -175,7 +175,7 @@ export function buildNegotiationPlan(
   }
 
   talkingPoints.push(
-    `I'm excited about the work and want to make this easy to say yes to - could we look at a base in the ${money(counterRange.low, currency)}–${money(counterRange.high, currency)} range?`,
+    `I'm excited about the work and want to make this easy to say yes to - could we look at a base in the ${money(counterRange.low, currency)} to ${money(counterRange.high, currency)} range?`,
   );
 
   talkingPoints.push(
@@ -233,7 +233,7 @@ export function buildNegotiationPlan(
   }
 
   assumptions.push(
-    `Counter range = counter base ${money(counterBase, currency)} ± ${pct(COUNTER_RANGE_SPREAD)} → ${money(counterRange.low, currency)}–${money(counterRange.high, currency)}.`,
+    `Counter range = counter base ${money(counterBase, currency)} ± ${pct(COUNTER_RANGE_SPREAD)} → ${money(counterRange.low, currency)} to ${money(counterRange.high, currency)}.`,
   );
 
   assumptions.push(
@@ -259,7 +259,7 @@ export function buildNegotiationPlan(
     (anchor.hasCompetingOffer
       ? `I do have a competing offer, but ${company} is my preference, and I'm hoping we can align on compensation. `
       : ``) +
-    `Based on the scope of the role${hasMarketAnchor ? " and the market data I've gathered" : ""}, I was hoping we could land a base in the ${money(counterRange.low, currency)}–${money(counterRange.high, currency)} range (I'd be anchoring around ${money(counterBase, currency)}).\n\n` +
+    `Based on the scope of the role${hasMarketAnchor ? " and the market data I've gathered" : ""}, I was hoping we could land a base in the ${money(counterRange.low, currency)} to ${money(counterRange.high, currency)} range (I'd be anchoring around ${money(counterBase, currency)}).\n\n` +
     `I'm flexible on how we get there - signing bonus or equity could help bridge any gap if base is constrained. I'm confident we can find a number that works for both of us.\n\n` +
     `Thanks again, and I'm looking forward to your thoughts.\n\n` +
     `Best,\n[Your name]`;

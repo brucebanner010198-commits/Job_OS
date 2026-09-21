@@ -34,7 +34,7 @@ function toKind(kind: string): ProfileEntryKind | null {
   return KIND_VALUES.has(kind) ? (kind as ProfileEntryKind) : null;
 }
 
-/** Begin coaching session — returns opening message and initial coverage. */
+/** Begin coaching session: returns opening message and initial coverage. */
 export async function startCoachingAction(input: {
   path: OnboardingPath;
   initialPaste?: string;
@@ -73,7 +73,7 @@ export interface CompilePreviewResult {
   goals: CareerGoalData;
 }
 
-/** Compile preview — does not persist. */
+/** Compile preview: does not persist. */
 export async function compileOnboardingPreviewAction(input: {
   path: OnboardingPath;
   turns: CoachingTurn[];
@@ -133,7 +133,7 @@ export async function completeOnboardingAction(input: {
       resumeText: input.resumeText,
     });
     goals = await compileGoalsFromNote({
-      goalsNote: profile.goalsNote || "Goals not captured — please update in Career Goals.",
+      goalsNote: profile.goalsNote || "Goals not captured. Please update in Career Goals.",
       profileText,
     });
   } else {
@@ -162,13 +162,13 @@ export async function completeOnboardingAction(input: {
   if (input.skipCoaching) {
     await saveNote(
       scope,
-      "Onboarding completed with coaching skipped — goals and gaps may be incomplete.",
+      "Onboarding completed with coaching skipped: goals and gaps may be incomplete.",
       null,
       "setup-partial",
     );
   }
 
-  // For resume path, resume entries already imported — add conversation/paste deltas only
+  // For resume path, resume entries already imported: add conversation/paste deltas only
   const entriesToAdd =
     input.path === "resume"
       ? profile.entries.filter((e) => e.provenance !== "resume")

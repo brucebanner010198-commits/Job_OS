@@ -1,5 +1,5 @@
 /**
- * Shared catch-up job runner — used by scripts/run-catchup.ts and setup triggers.
+ * Shared catch-up job runner: used by scripts/run-catchup.ts and setup triggers.
  */
 import { syncInbox } from "@/lib/track/service";
 import { ingestAndScore } from "@/lib/jobs/service";

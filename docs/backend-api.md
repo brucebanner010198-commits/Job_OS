@@ -6,25 +6,25 @@ Job OS exposes **11 route modules** (grouped into **9 logical API areas**) and *
 
 | Context | Rule |
 |---------|------|
-| **Loopback** (`localhost`, `127.0.0.1`, `::1`) | Always trusted — no token required |
+| **Loopback** (`localhost`, `127.0.0.1`, `::1`) | Always trusted: no token required |
 | **LAN / non-loopback** | When `JOB_OS_ACCESS_TOKEN` is set, protected routes and mutating server actions require a valid token |
 | **Token presentation** | `Authorization: Bearer <token>`, `x-job-os-token` header, `?token=` query (deprecated), or `job_os_access` httpOnly cookie (set by `proxy.ts` after a valid Bearer/query token) |
 
 Protected API prefixes (see `lib/auth/access.ts`):
 
 - `/api/backup/*`
-- `/api/gmail/*` (except OAuth — see exemptions)
+- `/api/gmail/*` (except OAuth: see exemptions)
 - `/api/integrations/*`
 - `/api/apply/*`
 
 **Exempt paths** (no access token, even on LAN):
 
-- `/api/gmail/auth` — OAuth kickoff redirect
-- `/api/gmail/callback` — OAuth return redirect
+- `/api/gmail/auth`: OAuth kickoff redirect
+- `/api/gmail/callback`: OAuth return redirect
 
 **Public paths** (not in protected prefixes):
 
-- `/api/health` — readiness probe
+- `/api/health`: readiness probe
 
 Server actions gate via `requireAccessForRead()` / `requireAccessForMutation()` in `lib/auth/require-access.ts`. On failure they throw `Unauthorized - send Authorization: Bearer or present a valid job_os_access cookie.`
 
@@ -34,7 +34,7 @@ LAN clients on protected prefixes are rate-limited to **100 req/min per IP** (`l
 
 ## API routes
 
-### 1. Health — `GET /api/health`
+### 1. Health: `GET /api/health`
 
 | | |
 |---|---|
@@ -61,7 +61,7 @@ Never returns secret values.
 
 ---
 
-### 2. Integrations status — `GET /api/integrations/status`
+### 2. Integrations status: `GET /api/integrations/status`
 
 | | |
 |---|---|
@@ -82,7 +82,7 @@ Never returns secret values.
 
 ---
 
-### 3. Integrations verify — `POST /api/integrations/verify`
+### 3. Integrations verify: `POST /api/integrations/verify`
 
 | | |
 |---|---|
@@ -102,7 +102,7 @@ Probes OpenRouter via `GET https://openrouter.ai/api/v1/models` with the configu
 
 ---
 
-### 4. Backup create — `POST /api/backup/create`
+### 4. Backup create: `POST /api/backup/create`
 
 | | |
 |---|---|
@@ -129,14 +129,14 @@ Probes OpenRouter via `GET https://openrouter.ai/api/v1/models` with the configu
 
 ---
 
-### 5. Backup export — `GET /api/backup/export`
+### 5. Backup export: `GET /api/backup/export`
 
 | | |
 |---|---|
-| **Auth** | Loopback always allowed; LAN requires valid token (also enforced in-route — default-deny off loopback without token) |
+| **Auth** | Loopback always allowed; LAN requires valid token (also enforced in-route: default-deny off loopback without token) |
 | **Purpose** | Plaintext JSON download of master profile |
 
-**Response** `200` — `Content-Disposition: attachment; filename="job-os-profile-<stamp>.json"`
+**Response** `200`: `Content-Disposition: attachment; filename="job-os-profile-<stamp>.json"`
 
 Body: portable profile export from `buildPlaintextExport()`.
 
@@ -144,7 +144,7 @@ Body: portable profile export from `buildPlaintextExport()`.
 
 ---
 
-### 6. Backup restore — `POST /api/backup/restore`
+### 6. Backup restore: `POST /api/backup/restore`
 
 | | |
 |---|---|
@@ -167,18 +167,18 @@ Body: portable profile export from `buildPlaintextExport()`.
 
 ---
 
-### 7. Gmail OAuth — `GET /api/gmail/auth`, `GET /api/gmail/callback`
+### 7. Gmail OAuth: `GET /api/gmail/auth`, `GET /api/gmail/callback`
 
 | Route | Auth | Behavior |
 |-------|------|----------|
 | `GET /api/gmail/auth` | Exempt | Redirects to Google consent; sets httpOnly `GMAIL_OAUTH_STATE` cookie |
 | `GET /api/gmail/callback` | Exempt | Exchanges code, stores tokens in `.secrets/`, redirects to `/track?gmail=connected\|error\|unconfigured` |
 
-No JSON responses — browser redirects only.
+No JSON responses: browser redirects only.
 
 ---
 
-### 8. Gmail watch — `POST /api/gmail/watch`, `DELETE /api/gmail/watch`
+### 8. Gmail watch: `POST /api/gmail/watch`, `DELETE /api/gmail/watch`
 
 | | |
 |---|---|
@@ -195,7 +195,7 @@ No JSON responses — browser redirects only.
 
 ---
 
-### 9. Gmail push — `POST /api/gmail/push`
+### 9. Gmail push: `POST /api/gmail/push`
 
 | | |
 |---|---|
@@ -210,14 +210,14 @@ No JSON responses — browser redirects only.
 
 ---
 
-### 10. Apply session — `GET|POST /api/apply/session/[id]`
+### 10. Apply session: `GET|POST /api/apply/session/[id]`
 
 | | |
 |---|---|
 | **Auth** | Protected on non-loopback when token set |
 | **Purpose** | Cooperative Playwright session control (pause / handoff / resume) |
 
-**GET** — fetch session state:
+**GET**: fetch session state:
 
 ```json
 { "session": { "...": "ApplySession" } | null }
@@ -249,8 +249,8 @@ Validation: high-risk inputs use Zod schemas in `lib/validation/action-schemas.t
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `listProfilesAction()` | read | — | `ProfileSummary[]` | Unauthorized |
-| `getActiveProfileAction()` | read | — | `ProfileSummary` | Unauthorized |
+| `listProfilesAction()` | read | - | `ProfileSummary[]` | Unauthorized |
+| `getActiveProfileAction()` | read | - | `ProfileSummary` | Unauthorized |
 | `switchProfileAction(profileId)` | mutation | `profileId: string` | `void` | Profile not found |
 | `createProfileAction(name)` | mutation | `name: string` (Zod, max 64) | `ProfileSummary` | Validation error |
 | `deleteProfileAction(profileId)` | mutation | `profileId` (Zod cuid) | `void` | Profile not found |
@@ -259,7 +259,7 @@ Validation: high-risk inputs use Zod schemas in `lib/validation/action-schemas.t
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `listIntegrationsAction()` | read | — | `IntegrationView[]` (no secret values) | Unauthorized |
+| `listIntegrationsAction()` | read | - | `IntegrationView[]` (no secret values) | Unauthorized |
 | `saveIntegrationSecretsAction(integrationId, values)` | mutation | `integrationId`, `values: Record<string,string>` (Zod) | `{ ok: true }` | Unknown integration, validation |
 | `setIntegrationEnabledAction(integrationId, enabled)` | mutation | `integrationId`, `enabled: boolean` | `{ ok: true }` | No toggle on integration |
 
@@ -279,18 +279,18 @@ Writes secrets to `.secrets/keys.json` via `setSecret()` / `deleteSecret()`.
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `loadDreamCompaniesAction()` | read | — | `DreamCompany[]` | Unauthorized |
+| `loadDreamCompaniesAction()` | read | - | `DreamCompany[]` | Unauthorized |
 | `saveDreamCompaniesAction(companies)` | mutation | `DreamCompany[]` | `{ ok: true }` | Unauthorized |
 
 ### `app/actions/track.ts`
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `syncInboxAction()` | mutation | — | `{ ok, created, proposals, live, error? }` | Returns `{ ok: false, error }` — never throws |
+| `syncInboxAction()` | mutation | - | `{ ok, created, proposals, live, error? }` | Returns `{ ok: false, error }`: never throws |
 | `confirmProposalAction(proposalId)` | mutation | `proposalId` | `{ ok, error? }` | Caught errors in body |
 | `dismissProposalAction(proposalId)` | mutation | `proposalId` | `{ ok, error? }` | Caught errors in body |
 | `moveApplicationAction(applicationId, toStatus)` | mutation | `applicationId`, `AppStatus` | `{ ok: boolean }` | `{ ok: false }` on failure |
-| `disconnectGmailAction()` | mutation | — | `{ ok: boolean }` | `{ ok: false }` on failure |
+| `disconnectGmailAction()` | mutation | - | `{ ok: boolean }` | `{ ok: false }` on failure |
 
 ### `app/actions/jobs.ts`
 
@@ -316,7 +316,7 @@ Writes secrets to `.secrets/keys.json` via `setSecret()` / `deleteSecret()`.
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `refreshFollowUpsAction()` | mutation | — | `{ ok, error? }` | Never throws |
+| `refreshFollowUpsAction()` | mutation | - | `{ ok, error? }` | Never throws |
 | `markFollowUpDoneAction(id)` | mutation | `id` | `{ ok, error? }` | Never throws |
 | `dismissFollowUpAction(id)` | mutation | `id` | `{ ok, error? }` | Never throws |
 
@@ -324,7 +324,7 @@ Writes secrets to `.secrets/keys.json` via `setSecret()` / `deleteSecret()`.
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `suggestQuestionsAction()` | mutation | — | `string[]` | Unauthorized |
+| `suggestQuestionsAction()` | mutation | - | `string[]` | Unauthorized |
 | `synthesizeGoalsAction(note)` | mutation | `note: string` | `CareerGoalData` | Empty note throws |
 | `saveGoalsAction(data, rawNote)` | mutation | `CareerGoalData`, `rawNote` | `{ ok: true }` | Unauthorized |
 
@@ -334,7 +334,7 @@ Writes secrets to `.secrets/keys.json` via `setSecret()` / `deleteSecret()`.
 |--------|------|-------|--------|--------|
 | `auditProfileTextAction(text)` | mutation | pasted profile text | `AuditResult` | Unauthorized |
 | `auditProfileAction(input)` | mutation | `LinkedInProfileInput` | `AuditResult` | Unauthorized |
-| `seedFromMasterProfileAction()` | mutation | — | `string` (non-sensitive profile text) | Returns `""` if DB absent |
+| `seedFromMasterProfileAction()` | mutation | - | `string` (non-sensitive profile text) | Returns `""` if DB absent |
 
 ### `app/actions/interview.ts`
 
@@ -367,7 +367,7 @@ Writes secrets to `.secrets/keys.json` via `setSecret()` / `deleteSecret()`.
 
 | Action | Auth | Input | Output | Errors |
 |--------|------|-------|--------|--------|
-| `refreshConnectionsAction()` | mutation | — | `{ ok, created, live, error? }` | Never throws |
+| `refreshConnectionsAction()` | mutation | - | `{ ok, created, live, error? }` | Never throws |
 | `generateIntroAction(company, applicationId)` | mutation | company, optional app id | `{ ok, error? }` | Never throws |
 | `markIntroSentAction(id)` | mutation | intro id | `{ ok, error? }` | Never throws |
 | `skipIntroAction(id)` | mutation | intro id | `{ ok, error? }` | Never throws |

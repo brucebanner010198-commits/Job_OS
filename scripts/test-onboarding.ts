@@ -1,5 +1,5 @@
 /**
- * Onboarding unit tests — coaching stop logic, provenance merge, setupPartial.
+ * Onboarding unit tests: coaching stop logic, provenance merge, setupPartial.
  * Run: npm run test:onboarding
  */
 import {
@@ -26,13 +26,13 @@ function check(name: string, cond: boolean) {
   }
 }
 
-console.log("\ncoaching — user done signal:");
+console.log("\ncoaching: user done signal:");
 check("detects that's everything", userDoneSignal("that's everything"));
 check("detects nothing else", userDoneSignal("nothing else to add"));
 check("detects I'm done", userDoneSignal("I'm done for now"));
 check("ignores normal answer", !userDoneSignal("I worked at Acme from 2020 to 2022"));
 
-console.log("\ncoaching — stop evaluation:");
+console.log("\ncoaching: stop evaluation:");
 check(
   "shouldStop proceeds to compile",
   evaluateCoachingStop({
@@ -74,7 +74,7 @@ check(
   }).proceedToCompile,
 );
 
-console.log("\nprofile compiler — provenance merge:");
+console.log("\nprofile compiler: provenance merge:");
 const resumeEntry: CompiledEntry = {
   kind: "EXPERIENCE",
   title: "Software Engineer at Acme",
@@ -111,7 +111,7 @@ check(
   ]).length === 2,
 );
 
-console.log("\nsetup status — setupPartial:");
+console.log("\nsetup status: setupPartial:");
 check(
   "setup-partial source flagged",
   isSetupPartialNote("setup-partial", "any text"),
@@ -120,7 +120,7 @@ check(
   "legacy onboarding-coaching note flagged",
   isSetupPartialNote(
     "onboarding-coaching",
-    "Onboarding completed with coaching skipped — goals and gaps may be incomplete.",
+    "Onboarding completed with coaching skipped: goals and gaps may be incomplete.",
   ),
 );
 check(

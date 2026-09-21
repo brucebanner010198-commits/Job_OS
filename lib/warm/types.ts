@@ -54,7 +54,7 @@ export interface Connection {
   degree: 1 | 2 | 3;
   /** A real, specific grounding fact, e.g. "we worked together at Acme". */
   howKnown?: string;
-  /** A real shared detail, e.g. "both on the payments team 2019–2021". */
+  /** A real shared detail, e.g. "both on the payments team 2019 to 2021". */
   sharedContext?: string;
   profileUrl?: string;
   /** Provenance of the row. */

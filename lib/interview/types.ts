@@ -148,7 +148,7 @@ export interface AgentPersona {
 
 /**
  * The hard caps that contain the one variable cost in the system. All in
- * seconds. A 30-min ElevenLabs mock ≈ $2.40–4.80 + tokens, so these are real
+ * seconds. A 30-min ElevenLabs mock ≈ $2.40 to $4.80 + tokens, so these are real
  * money, not UX niceties.
  */
 export interface VoiceCaps {

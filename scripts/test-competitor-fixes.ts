@@ -49,7 +49,7 @@ const jd =
   "Senior TypeScript engineer with React, Node.js, PostgreSQL, and AWS experience required.";
 const resume = "Built APIs with TypeScript, React, and PostgreSQL on AWS.";
 const match = computeAtsMatch(jd, resume);
-check("match percent in 0–100", match.matchPercent >= 0 && match.matchPercent <= 100);
+check("match percent in 0 to 100", match.matchPercent >= 0 && match.matchPercent <= 100);
 check("matched includes typescript", match.matched.includes("typescript"));
 check("gaps excludes matched terms", !match.gaps.includes("typescript"));
 check("extractJdKeywords returns bounded list", extractJdKeywords(jd).length <= 40);

@@ -47,7 +47,7 @@ function parseCoachNote(
   );
   const summary =
     summaryMatch?.[0] ??
-    "Rejection captured — review suggestions before similar applications.";
+    "Rejection captured: review suggestions before similar applications.";
 
   const signals: string[] = [];
   const inSignals = rawText.split("## Signals")[1]?.split("##")[0] ?? "";
@@ -116,7 +116,7 @@ export async function listRejectionLearnings(
   return views;
 }
 
-/** Offline preview — fixture rejection emails parsed into learning cards. */
+/** Offline preview: fixture rejection emails parsed into learning cards. */
 export function previewRejectionLearnings(): RejectionLearningView[] {
   const rejectionFixtures = fixtureEmails.filter(
     (f) =>

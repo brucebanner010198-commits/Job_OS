@@ -36,7 +36,7 @@ export const fixtureConnections: Connection[] = [
     relationship: "COLLEAGUE",
     degree: 1,
     howKnown: "we worked together at Acme on the payments team",
-    sharedContext: "both on the payments platform team 2019–2021",
+    sharedContext: "both on the payments platform team 2019 to 2021",
     profileUrl: "https://www.linkedin.com/in/priya-sharma-eng",
     source: "fixture",
   },

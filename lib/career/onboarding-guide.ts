@@ -37,7 +37,7 @@ export function buildOnboardingGuide(company: string, role: string): OnboardingG
     ],
     firstThirtyDaysRoadmap: [
       {
-        phase: "Days 1–30: Absorb & Ship Fast",
+        phase: "Days 1 to 30: Absorb & Ship Fast",
         focus: "Understand system architecture and ship your first production PR in week 2.",
         actions: [
           "Meet 1-on-1 with team members to map dependencies and unwritten norms.",
@@ -46,7 +46,7 @@ export function buildOnboardingGuide(company: string, role: string): OnboardingG
         ],
       },
       {
-        phase: "Days 31–60: Own a Domain",
+        phase: "Days 31 to 60: Own a Domain",
         focus: "Take primary ownership of a core subsystem or service.",
         actions: [
           "Run on-call shadow rotations and document runbooks.",
@@ -55,7 +55,7 @@ export function buildOnboardingGuide(company: string, role: string): OnboardingG
         ],
       },
       {
-        phase: "Days 61–90: Strategic Leadership",
+        phase: "Days 61 to 90: Strategic Leadership",
         focus: "Establish cross-team visibility and advance internal career growth.",
         actions: [
           "Propose architectural improvements to cut latency or cloud operating costs.",

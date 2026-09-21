@@ -120,7 +120,7 @@ function laneMetrics(lane: LaneKey, apps: ApplicationRecord[]): LaneMetrics {
       lane === "cold"
         ? `Cold applications are converting below target ` +
           `(${interviewsPer10Apps}/10 vs ~${healthy}/10). Referrals convert ` +
-          `~7–10× better - shift effort to the warm-path lane.`
+          `~7 to 10× better - shift effort to the warm-path lane.`
         : `Warm intros aren't converting (${interviewsPer10Apps}/10 vs ` +
           `~${healthy}/10). Make each referral ask more specific and personal, ` +
           `and follow up. A weak warm lane wastes your most effective channel.`;
@@ -186,7 +186,7 @@ function buildRecommendations(
     recs.push(
       `🎉 You have ${funnel.offer} offer${funnel.offer === 1 ? "" : "s"} in hand - ` +
         `open the salary coach before you respond. Most people who negotiate ` +
-        `gain ~+18–20%.`,
+        `gain ~+18% to 20%.`,
     );
   }
 
@@ -194,7 +194,7 @@ function buildRecommendations(
   if (funnel.applied === 0) {
     recs.push(
       `No applications submitted yet. Discover roles in the Job Engine, then ` +
-        `apply - speed matters most in the first 24–48h.`,
+        `apply - speed matters most in the first 24 to 48h.`,
     );
     return recs;
   }
@@ -213,7 +213,7 @@ function buildRecommendations(
       recs.push(
         `Cold applications are converting below target and you haven't used ` +
           `the warm-path lane yet. Find a referral before applying cold - ` +
-          `referrals convert ~7–10× better.`,
+          `referrals convert ~7 to 10× better.`,
       );
     } else if (cold.recommendation) {
       recs.push(cold.recommendation);
@@ -227,7 +227,7 @@ function buildRecommendations(
   if (speed.verdict === "slow" && speed.medianHours !== undefined) {
     recs.push(
       `You're applying a median of ${speed.medianHours}h after a job appears. ` +
-        `Applying within 24–48h is up to ~8× more likely to get an interview - ` +
+        `Applying within 24 to 48h is up to ~8× more likely to get an interview - ` +
         `prioritise fresh (<24h) matches.`,
     );
   }

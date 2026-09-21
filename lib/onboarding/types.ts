@@ -30,7 +30,7 @@ export interface CoachingTurnResult {
   coverage: CoachingCoverage;
   /** True when the coach believes enough info is collected to compile. */
   shouldStop: boolean;
-  /** True when user signaled done but critical gaps remain — show confirmation UI. */
+  /** True when user signaled done but critical gaps remain: show confirmation UI. */
   finalGapCheck: boolean;
   remainingGaps: string[];
 }

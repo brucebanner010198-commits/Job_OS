@@ -8,9 +8,9 @@ import { ATS } from "@/lib/resume/ats-rules";
 import { mayAutoSubmit } from "./policy";
 
 export interface QualityGateConfig {
-  /** Minimum composite job score (0–1) from lib/scoring/score.ts. */
+  /** Minimum composite job score (0 to 1) from lib/scoring/score.ts. */
   minJobScore: number;
-  /** Minimum post-tailor screening overall (0–100). */
+  /** Minimum post-tailor screening overall (0 to 100). */
   minScreeningScore: number;
   /** Lexical keyword floor when tailored screening is unavailable. */
   minKeywordMatchPercent: number;

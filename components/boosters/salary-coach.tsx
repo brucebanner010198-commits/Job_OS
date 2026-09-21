@@ -120,7 +120,7 @@ function PlanPanel({ plan }: { plan: NegotiationPlan }) {
           <span className="text-3xl font-bold tabular-nums text-foreground">
             {money(plan.counterRange.low, currency)}
           </span>
-          <span className="text-xl text-muted-foreground">–</span>
+          <span className="text-xl text-muted-foreground">-</span>
           <span className="text-3xl font-bold tabular-nums text-foreground">
             {money(plan.counterRange.high, currency)}
           </span>

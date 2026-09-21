@@ -144,7 +144,7 @@ check(
   !!emailDraft.subject && emailDraft.subject.includes("Notion"),
 );
 check(
-  "subject is 2–4 words",
+  "subject is 2 to 4 words",
   !!emailDraft.subject &&
     wordCount(emailDraft.subject) >= 2 &&
     wordCount(emailDraft.subject) <= 4,

@@ -3,7 +3,7 @@
  * ATS-friendly plain text. Used by the generator, UI checklist, and tests.
  *
  * Research basis: Microsoft/Google/Amazon public guidance and recruiter playbooks
- * converge on 250–400 words, 3–4 paragraphs, hook → fit → proof → close, role/company
+ * converge on 250 to 400 words, 3 to 4 paragraphs, hook → fit → proof → close, role/company
  * specificity, metrics over adjectives, and no generic "passion" openers.
  */
 
@@ -134,7 +134,7 @@ function findAtsIssue(body: string): string | null {
 /** F500 structure template echoed in the generation prompt. */
 export const F500_STRUCTURE_TEMPLATE = `Paragraph 1 - HOOK: Open with a concrete accomplishment or result from the profile (never "I am writing to apply" or "I saw your posting"). Name the role and company naturally.
 Paragraph 2 - FIT: Tie the employer's specific need from the job description to your background. Reference real JD themes; show you read the posting.
-Paragraph 3 - PROOF: One short paragraph with 1–2 cited achievements and metrics drawn ONLY from the master profile. Show, don't tell.
+Paragraph 3 - PROOF: One short paragraph with 1 or 2 cited achievements and metrics drawn ONLY from the master profile. Show, don't tell.
 Paragraph 4 - CLOSE: Confident call to action (availability, next step). Professional sign-off tone - no empty flattery.`;
 
 /**
@@ -153,12 +153,12 @@ export function validateCoverLetterStandards(
     wordCount <= COVER_LETTER_WORD_COUNT_MAX;
   checks.push({
     id: "word_count",
-    label: `${COVER_LETTER_WORD_COUNT_MIN}–${COVER_LETTER_WORD_COUNT_MAX} words`,
+    label: `${COVER_LETTER_WORD_COUNT_MIN} to ${COVER_LETTER_WORD_COUNT_MAX} words`,
     passed: inWordBand,
     severity: inWordBand ? "pass" : "warn",
     hint: inWordBand
       ? undefined
-      : `Currently ${wordCount} words - recruiters skim 250–400 word letters.`,
+      : `Currently ${wordCount} words - recruiters skim 250 to 400 word letters.`,
   });
 
   const paragraphs = countParagraphs(body);
@@ -167,7 +167,7 @@ export function validateCoverLetterStandards(
     paragraphs <= COVER_LETTER_PARAGRAPH_MAX;
   checks.push({
     id: "structure",
-    label: `${COVER_LETTER_PARAGRAPH_MIN}–${COVER_LETTER_PARAGRAPH_MAX} paragraphs (hook → fit → proof → close)`,
+    label: `${COVER_LETTER_PARAGRAPH_MIN} to ${COVER_LETTER_PARAGRAPH_MAX} paragraphs (hook → fit → proof → close)`,
     passed: paraOk,
     severity: paraOk ? "pass" : "warn",
     hint: paraOk

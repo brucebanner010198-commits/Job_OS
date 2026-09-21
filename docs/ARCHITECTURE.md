@@ -10,7 +10,7 @@ Job OS is a **local-first** Next.js 16 application: Postgres + pgvector for stru
 ├─────────────────────────────────────────────────────────────┤
 │  Server actions (app/actions/*)  │  API routes (app/api/*)  │
 ├─────────────────────────────────────────────────────────────┤
-│  Domain services (lib/*/service.ts) — Prisma boundary       │
+│  Domain services (lib/*/service.ts): Prisma boundary       │
 ├─────────────────────────────────────────────────────────────┤
 │  Pure logic (engine, scoring, state machines)               │
 ├─────────────────────────────────────────────────────────────┤
@@ -21,7 +21,7 @@ Job OS is a **local-first** Next.js 16 application: Postgres + pgvector for stru
 ```
 
 - **Services** own all database I/O for a domain.
-- **Engines** are pure (no DB, no network) — e.g. `lib/apply/engine.ts`, `lib/scoring/score.ts`.
+- **Engines** are pure (no DB, no network): e.g. `lib/apply/engine.ts`, `lib/scoring/score.ts`.
 - **Adapters** implement narrow interfaces and are selected at runtime by env + configuration.
 
 Access control: `proxy.ts` gates protected API prefixes; server actions use `lib/auth/require-access.ts`. Loopback is always trusted.
@@ -83,9 +83,9 @@ The module registry drives the dashboard and navigation. Each module has:
 
 ## Adapter seams
 
-Extend production behavior by adding adapters behind these interfaces — never fork business logic in UI or actions.
+Extend production behavior by adding adapters behind these interfaces: never fork business logic in UI or actions.
 
-### Jobs — `lib/jobs/sources/index.ts`
+### Jobs: `lib/jobs/sources/index.ts`
 
 | Adapter | File | Enable condition |
 |---------|------|------------------|
@@ -102,7 +102,7 @@ Extend production behavior by adding adapters behind these interfaces — never 
 
 ---
 
-### Company brief — `lib/brief/sources.ts`
+### Company brief: `lib/brief/sources.ts`
 
 | Adapter | Purpose |
 |---------|---------|
@@ -118,14 +118,14 @@ Extend production behavior by adding adapters behind these interfaces — never 
 
 ---
 
-### Apply driver — `lib/apply/driver.ts`
+### Apply driver: `lib/apply/driver.ts`
 
 | Driver | File | When active |
 |--------|------|-------------|
 | Simulated (default) | `driver-simulated.ts` | Default; always available offline |
 | Playwright | `driver-playwright.ts` | `APPLY_DRIVER=playwright` AND `JOB_OS_CLOUD≠1` |
 
-**Interface:** `ApplyDriver` in `lib/apply/types.ts` — `open`, `scan`, `fill`, optional `attachResume`, `submit`, optional `close`.
+**Interface:** `ApplyDriver` in `lib/apply/types.ts`: `open`, `scan`, `fill`, optional `attachResume`, `submit`, optional `close`.
 
 **Add new work as:** implement `ApplyDriver` and register in `resolveApplyDriver()`.
 
@@ -133,7 +133,7 @@ Related pure modules (no adapter swap): `engine.ts` (field plan), `router.ts` (A
 
 ---
 
-### Interview voice — `lib/interview/index.ts`
+### Interview voice: `lib/interview/index.ts`
 
 **Selection chain:** ElevenLabs → local Pipecat → fixture mock.
 
@@ -145,11 +145,11 @@ Related pure modules (no adapter swap): `engine.ts` (field plan), `router.ts` (A
 
 **Add new work as:** implement `VoiceSource` and wire into `selectVoiceProvider()`.
 
-Study mode (`lib/interview/study.ts`) is always offline — no adapter required.
+Study mode (`lib/interview/study.ts`) is always offline: no adapter required.
 
 ---
 
-### Warm-path connections — `lib/warm/index.ts`
+### Warm-path connections: `lib/warm/index.ts`
 
 | Source | File | Live? |
 |--------|------|-------|
@@ -162,7 +162,7 @@ Manual CSV / import paths bypass the live adapter entirely.
 
 ---
 
-### AI gateway — `lib/ai/openrouter.ts`
+### AI gateway: `lib/ai/openrouter.ts`
 
 Single OpenRouter client for chat + embeddings. Model routing via `lib/ai/models.ts` (`MODEL_CHEAP`, `MODEL_STANDARD`, `MODEL_STRONG`, task-based `modelForTask()`).
 
@@ -170,7 +170,7 @@ Single OpenRouter client for chat + embeddings. Model routing via `lib/ai/models
 
 ---
 
-### Gmail — `lib/gmail/`
+### Gmail: `lib/gmail/`
 
 | Component | Role |
 |-----------|------|
@@ -178,11 +178,11 @@ Single OpenRouter client for chat + embeddings. Model routing via `lib/ai/models
 | `token-store.ts` | Tokens in `.secrets/gmail-{profileId}.json` |
 | `push.ts` | Pub/Sub watch + push webhook verification |
 
-Track service (`lib/track/service.ts`) is propose-only — never auto-applies status or sends mail.
+Track service (`lib/track/service.ts`) is propose-only: never auto-applies status or sends mail.
 
 ---
 
-### Secrets — `lib/secrets/`
+### Secrets: `lib/secrets/`
 
 Resolution order (web): `.secrets/keys.json` → `.env`. Desktop (`JOB_OS_DESKTOP=1`): macOS Keychain → file → env.
 
@@ -219,7 +219,7 @@ Use `liveStatus` from `lib/modules.ts` in UI badges. Runtime behavior:
 
 | Job | Entry | Trigger |
 |-----|-------|---------|
-| Catch-up scheduler | `scripts/run-catchup.ts` (`npm run catchup`) | launchd / manual — discover, autopilot, backup |
+| Catch-up scheduler | `scripts/run-catchup.ts` (`npm run catchup`) | launchd / manual: discover, autopilot, backup |
 | Autopilot | `lib/autopilot/` | `AUTOPILOT_ENABLED=1`; AUTONOMOUS routes only |
 | Career agent | `lib/career/trigger.ts` | After profile/resume mutations |
 
@@ -229,4 +229,4 @@ Use `liveStatus` from `lib/modules.ts` in UI badges. Runtime behavior:
 
 Structured logging: `lib/observability/logger.ts`. Audit events: `lib/observability/audit.ts` (backup export, integration saves, profile deletes).
 
-Health: `GET /api/health` — see [backend-api.md](./backend-api.md).
+Health: `GET /api/health`: see [backend-api.md](./backend-api.md).

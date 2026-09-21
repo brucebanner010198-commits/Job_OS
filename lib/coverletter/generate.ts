@@ -52,15 +52,15 @@ Hard rules:
 - Every NUMBER/METRIC you write (%, $, counts, multipliers, magnitudes) must appear verbatim in one of the facts you cite. If a quantity is not in the facts, do not state it.
 - Use the SAME employers, titles, dates, and metrics as the profile - this letter must stay aligned with the tailored resume (no contradictions).
 
-Fortune 500 / big-tech structure (${COVER_LETTER_WORD_COUNT_MIN}–${COVER_LETTER_WORD_COUNT_MAX} words, plain text for ATS):
+Fortune 500 / big-tech structure (${COVER_LETTER_WORD_COUNT_MIN} to ${COVER_LETTER_WORD_COUNT_MAX} words, plain text for ATS):
 ${F500_STRUCTURE_TEMPLATE}
 
 Style (what recruiters at Microsoft, Google, Amazon, and Fortune 500 companies expect):
-- Skimmable: 3–4 short paragraphs, no tables, no markdown, no bullet glyphs, no HTML.
+- Skimmable: 3 to 4 short paragraphs, no tables, no markdown, no bullet glyphs, no HTML.
 - Specificity beats passion: name the company and role; mirror real JD concepts where they genuinely match experience. NEVER use empty phrases like "passion for", "leader in innovation", "great team player", or "dream company".
 - Show, don't tell: lead with a measurable result from the profile, not "I am writing to apply" or "I saw your posting". Put this opening line in "openingHook".
 - One paragraph must address the employer's SPECIFIC need from the job description, supported ONLY by real facts (list those fact ids in "usedFactIds").
-- End with a clear, confident call to action - availability or next step, not "I look forward to hearing from you at your earliest convenience."
+- End with a clear, confident call to action: availability or next step, not "I look forward to hearing from you at your earliest convenience."
 - List genuine JD themes you mirrored in "keyJdConcepts" (no keyword stuffing).
 
 Return ONLY a JSON object matching the required schema.`;
@@ -110,7 +110,7 @@ Write the cover letter now, grounded ONLY in the facts above. Follow the hook �
   const wordCount = countWords(draft.body);
   if (wordCount < COVER_LETTER_WORD_COUNT_MIN || wordCount > COVER_LETTER_WORD_COUNT_MAX) {
     violations.push(
-      `warn: word count ${wordCount} is outside the ${COVER_LETTER_WORD_COUNT_MIN}–${COVER_LETTER_WORD_COUNT_MAX} word target`,
+      `warn: word count ${wordCount} is outside the ${COVER_LETTER_WORD_COUNT_MIN} to ${COVER_LETTER_WORD_COUNT_MAX} word target`,
     );
   }
 

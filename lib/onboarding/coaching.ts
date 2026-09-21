@@ -2,7 +2,7 @@
  * Career-coaching conversation orchestrator for onboarding.
  *
  * Multi-turn LLM session with gap detection and intelligent stop conditions.
- * Does not invent facts — probes for depth, confirms critical gaps, and stops
+ * Does not invent facts: probes for depth, confirms critical gaps, and stops
  * when coverage is sufficient or the user explicitly declines further detail.
  */
 import { z } from "zod";
@@ -40,7 +40,7 @@ const coachingResponseSchema = z.object({
 const COACHING_SYSTEM =
   "You are a patient, thorough career coach helping someone build a complete " +
   "master profile during onboarding. Your job is to gather exhaustive career " +
-  "information through dialogue — not to invent anything.\n\n" +
+  "information through dialogue, not to invent anything.\n\n" +
   "Collect and confirm:\n" +
   "- Career history (roles, employers, dates, responsibilities, achievements, metrics)\n" +
   "- Education (degrees, institutions, dates, honors)\n" +
@@ -52,12 +52,12 @@ const COACHING_SYSTEM =
   "Rules:\n" +
   "1. ALWAYS ask one focused clarifying question when input is missing, ambiguous, " +
   "incomplete, or inconsistent. Do not move on until resolved or the user declines.\n" +
-  "2. If the user mentions a role without dates, metrics, or scope — ask ONE follow-up.\n" +
+  "2. If the user mentions a role without dates, metrics, or scope, ask ONE follow-up.\n" +
   "3. If the user says they are done ('that's everything', 'nothing else', etc.), " +
-  "set finalGapCheck:true and list remaining critical gaps in remainingGaps — ask " +
+  "set finalGapCheck:true and list remaining critical gaps in remainingGaps. Ask " +
   "one confirmation question about those gaps.\n" +
   "4. If the user repeatedly declines to elaborate on the same topic (2+ times), " +
-  "acknowledge the gap and move on — do not nag.\n" +
+  "acknowledge the gap and move on. Do not nag.\n" +
   "5. Set shouldStop:true ONLY when: (a) major sections are at least partial, " +
   "goals section is partial or confirmed, AND user confirmed OR coverage.sufficient; " +
   "OR (b) user explicitly confirmed after finalGapCheck.\n" +
@@ -177,7 +177,7 @@ export async function startCoachingSession(input: {
         "acknowledge it briefly, then ask your first focused question about the biggest " +
         "gap or something goals-related that resumes rarely capture."
       : `${context}\n\nThe user does not have a resume. Start warmly and ask them to ` +
-        "walk you through their most recent role — title, company, dates, and one key win.";
+        "walk you through their most recent role: title, company, dates, and one key win.";
 
   try {
     const { value } = await chatJson(coachingResponseSchema, {
@@ -247,7 +247,7 @@ export function userDoneSignal(text: string): boolean {
 }
 
 /**
- * Client/server stop gating — when to proceed to compile vs show final gap check.
+ * Client/server stop gating: when to proceed to compile vs show final gap check.
  */
 export function evaluateCoachingStop(input: {
   shouldStop: boolean;

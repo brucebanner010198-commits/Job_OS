@@ -28,7 +28,7 @@ function entryKey(entry: Pick<CompiledEntry, "kind" | "title">): string {
 }
 
 /**
- * Resolve duplicate entries by provenance — conversation overrides paste overrides resume.
+ * Resolve duplicate entries by provenance: conversation overrides paste overrides resume.
  */
 export function mergeEntriesByProvenance(entries: CompiledEntry[]): CompiledEntry[] {
   const byKey = new Map<string, CompiledEntry>();
@@ -73,7 +73,7 @@ const compileSchema = z.object({
 
 const COMPILE_SYSTEM =
   "You compile a complete career profile from onboarding sources. Extract ONLY " +
-  "facts the user provided or confirmed — never invent employers, titles, dates, " +
+  "facts the user provided or confirmed. Never invent employers, titles, dates, " +
   "metrics, or skills.\n\n" +
   "For each entry set provenance:\n" +
   "- resume: from imported resume text\n" +
@@ -83,7 +83,7 @@ const COMPILE_SYSTEM =
   "Set inferred:true on fields you had to guess or that lack explicit confirmation.\n" +
   "Mark sensitive protected-class info as LIFE_FACT with sensitive:true.\n\n" +
   "Data shapes: CONTACT, SUMMARY, EXPERIENCE, EDUCATION, PROJECT, SKILL, " +
-  "ACHIEVEMENT, CERTIFICATION, LIFE_FACT — same as master profile schema.\n\n" +
+  "ACHIEVEMENT, CERTIFICATION, LIFE_FACT: same as master profile schema.\n\n" +
   "Also produce goalsNote: a free-text summary of stated career goals, aspirations, " +
   "target roles, industries, and timelines from the conversation.\n\n" +
   'Respond ONLY as JSON: { "entries": [{ "kind", "title", "data", "sensitive", ' +

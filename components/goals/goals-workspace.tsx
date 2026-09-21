@@ -157,7 +157,7 @@ export function GoalsWorkspace({
         <h2 className="font-medium">Where do you want your career to go?</h2>
         <p className="mb-3 mt-0.5 text-sm text-muted-foreground">
           Speak or type freely - the title you&apos;re aiming for, the kind of
-          work that energizes you, where you want to be in 5–10 years. The AI
+          work that energizes you, where you want to be in 5 to 10 years. The AI
           organizes it into a long-term goal and milestones. Nothing is invented.
         </p>
 

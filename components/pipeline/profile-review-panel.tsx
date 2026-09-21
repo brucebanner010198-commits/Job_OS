@@ -113,7 +113,7 @@ export function ProfileReviewPanel({
         {skipCoaching && (
           <p className="flex items-center justify-center gap-1 text-sm text-[var(--warning)]">
             <AlertCircle className="h-4 w-4" />
-            Coaching was skipped — some goals may be incomplete.
+            Coaching was skipped. Some goals may be incomplete.
           </p>
         )}
         <Link href="/jobs">
@@ -134,7 +134,7 @@ export function ProfileReviewPanel({
         <div className="rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-3 text-sm">
           <p className="font-medium">Partial setup</p>
           <p className="mt-1 text-muted-foreground">
-            Coaching was skipped. Goals and gaps may be incomplete — you can refine them later.
+            Coaching was skipped. Goals and gaps may be incomplete. You can refine them later.
           </p>
         </div>
       )}
@@ -146,7 +146,7 @@ export function ProfileReviewPanel({
           </h3>
           {profile.unconfirmedCount > 0 && (
             <p className="mt-1 text-xs text-[var(--warning)]">
-              {profile.unconfirmedCount} field(s) flagged as unconfirmed — review in Master Resume.
+              {profile.unconfirmedCount} field(s) flagged as unconfirmed. Review in Master Resume.
             </p>
           )}
           <div className="mt-2 flex flex-wrap gap-1.5">

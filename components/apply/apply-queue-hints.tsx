@@ -132,7 +132,7 @@ export function ApplyQueueHints({
         <div>
           <h2 className="font-medium">Apply queue</h2>
           <p className="text-xs text-muted-foreground">
-            Human-in-the-loop taskboard — expand a card for field review and approval.
+            Human-in-the-loop taskboard: expand a card for field review and approval.
           </p>
         </div>
         {needsYou.length > 0 && (
@@ -150,7 +150,7 @@ export function ApplyQueueHints({
           count={needsYou.length}
           tone="warning"
           highlight={needsYou.length > 0}
-          emptyMessage="No approvals pending — assisted routes appear here."
+          emptyMessage="No approvals pending. Assisted routes appear here."
         >
           {needsYou.map((app) => (
             <ApplicationCard

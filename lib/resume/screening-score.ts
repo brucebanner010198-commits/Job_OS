@@ -21,7 +21,7 @@ export interface ScreeningFlag {
 }
 
 export interface SkimClarityBreakdown {
-  /** 0–100 partial score for recruiter first-pass readability. */
+  /** 0 to 100 partial score for recruiter first-pass readability. */
   score: number;
   headlineAligned: boolean;
   metricsInTopFold: number;
@@ -34,7 +34,7 @@ export interface SkimClarityBreakdown {
 }
 
 export interface ScreeningScore {
-  /** 0–100 composite (keyword 40%, skim 40%, red-flag penalty 20%). */
+  /** 0 to 100 composite (keyword 40%, skim 40%, red-flag penalty 20%). */
   overall: number;
   keywordMatchPercent: number;
   keywordGaps: string[];
@@ -107,7 +107,7 @@ function collectRedFlags(
       flags.push({
         ruleId: "struct-mm-yyyy",
         severity: "block",
-        message: `experience[${i}] dates must be MM/YYYY or Present (got ${role.start}–${role.end}).`,
+        message: `experience[${i}] dates must be MM/YYYY or Present (got ${role.start} to ${role.end}).`,
       });
     }
     for (let j = 0; j < role.bullets.length; j++) {

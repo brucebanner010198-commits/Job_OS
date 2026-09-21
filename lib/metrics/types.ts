@@ -18,7 +18,7 @@
  * The two job-search lanes we measure separately:
  *   - "cold": a normal application with no referral path taken.
  *   - "warm": the user went through the warm-path (a referral/intro was sent for
- *     that company). Referrals convert ~7–10× better, so we hold this lane to a
+ *     that company). Referrals convert ~7 to 10× better, so we hold this lane to a
  *     higher bar and surface when it underperforms.
  */
 export type LaneKey = "cold" | "warm";
@@ -63,7 +63,7 @@ export interface InterviewRecord {
   id: string;
   /** "STUDY" | "AI_SCREEN" | "REAL_HR" */
   mode: string;
-  /** Overall score 0–100 when the session was completed + scored. */
+  /** Overall score 0 to 100 when the session was completed + scored. */
   overall?: number;
   createdAt: string;
 }
@@ -135,7 +135,7 @@ export const SPEED_VERDICT_LABEL: Record<SpeedVerdict, string> = {
 
 /**
  * Speed-to-apply: how long after a job first appears the user submits. Applying
- * within 24–48h is up to ~8× more likely to get an interview, so this is a
+ * within 24 to 48h is up to ~8× more likely to get an interview, so this is a
  * first-class KPI, not a footnote. Median over submitted apps that have both a
  * first-seen and a submitted timestamp.
  */
@@ -154,9 +154,9 @@ export interface KpiHeadline {
   totalOffers: number;
   /** The single headline figure: interviews per 10 submitted applications. */
   interviewsPer10Apps: number;
-  /** Offers ÷ submitted apps, as a 0–1 rate. */
+  /** Offers ÷ submitted apps, as a 0 to 1 rate. */
   offerRate: number;
-  /** Reached-interview ÷ submitted apps, as a 0–1 rate. */
+  /** Reached-interview ÷ submitted apps, as a 0 to 1 rate. */
   interviewRate: number;
 }
 

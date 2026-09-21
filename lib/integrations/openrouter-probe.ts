@@ -5,7 +5,7 @@ const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 export type OpenRouterProbeStatus = "ok" | "invalid" | "missing";
 
 /**
- * Lightweight OpenRouter auth check — never returns or logs the API key.
+ * Lightweight OpenRouter auth check: never returns or logs the API key.
  */
 export async function probeOpenRouter(): Promise<OpenRouterProbeStatus> {
   const apiKey = (await getSecret("OPENROUTER_API_KEY"))?.trim();

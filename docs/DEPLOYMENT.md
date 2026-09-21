@@ -1,6 +1,6 @@
 # Deployment
 
-Job OS is designed to run **on your machine** — laptop, home LAN, or packaged Tauri desktop app. It is not a multi-tenant cloud SaaS. This guide covers Docker services, environment configuration, LAN exposure, and secrets hygiene.
+Job OS is designed to run **on your machine**: laptop, home LAN, or packaged Tauri desktop app. It is not a multi-tenant cloud SaaS. This guide covers Docker services, environment configuration, LAN exposure, and secrets hygiene.
 
 ---
 
@@ -71,7 +71,7 @@ File: `docker-compose.voice.yml`
 docker compose -f docker-compose.voice.yml up -d
 ```
 
-Exposes `http://localhost:8765/connect` — set `PIPECAT_CONNECT_URL` in Integrations or `.env`.
+Exposes `http://localhost:8765/connect`: set `PIPECAT_CONNECT_URL` in Integrations or `.env`.
 
 This is an **optional OSS voice fallback** (Whisper + Kokoro + OpenRouter on the runner). ElevenLabs remains the primary live voice path.
 
@@ -96,7 +96,7 @@ Desktop (Tauri + macOS Keychain): see `src-tauri/README.md`. Set `JOB_OS_DESKTOP
 
 ## Environment checklist
 
-Copy `.env.example` → `.env`. Prefer the **Integrations portal** (`/integrations`) for API keys — values are written to `.secrets/keys.json` and override empty env vars.
+Copy `.env.example` → `.env`. Prefer the **Integrations portal** (`/integrations`) for API keys: values are written to `.secrets/keys.json` and override empty env vars.
 
 ### Core (required for full functionality)
 
@@ -122,7 +122,7 @@ When set, any host that is **not** loopback must present the token. Loopback (`l
 | `JOBS_DEFAULT_QUERY` | `software engineer` | Default search query |
 | `JOBS_USE_FIXTURES` | `1` | Built-in offline jobs |
 | `JOBS_FREE_SOURCES` | `1` | Remotive, RemoteOK, Arbeitnow, Jobicy |
-| `JSEARCH_API_KEY` | — | Optional paid spine |
+| `JSEARCH_API_KEY` | - | Optional paid spine |
 | `SCORING_MODE` | `embedding` | `embedding` or `lexical` |
 
 ### Gmail track
@@ -141,11 +141,11 @@ When set, any host that is **not** loopback must present the token. Loopback (`l
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `APPLY_DRIVER` | (simulated) | Set `playwright` for real Chrome |
-| `APPLY_DRY_RUN` | — | `1` = fill but never submit |
+| `APPLY_DRY_RUN` | - | `1` = fill but never submit |
 | `APPLY_HEADLESS` | visible | `1` = headless Chrome |
 | `APPLY_CHROME_PROFILE_DIR` | `.secrets/apply-chrome-profile` | Persistent automation profile |
 | `APPLY_RESUME_PDF` | `.secrets/resume.pdf` | PDF for file upload |
-| `JOB_OS_CLOUD` | — | `1` disables Playwright + warm LinkedIn |
+| `JOB_OS_CLOUD` | - | `1` disables Playwright + warm LinkedIn |
 
 ### Voice interview
 
@@ -230,11 +230,11 @@ LAN clients on protected API prefixes: **100 requests/minute per IP**. Returns `
 
 ### 5. Default-deny export
 
-`GET /api/backup/export` returns plaintext profile JSON. Off loopback, export is blocked unless `JOB_OS_ACCESS_TOKEN` is configured **and** presented — preventing accidental LAN data leaks.
+`GET /api/backup/export` returns plaintext profile JSON. Off loopback, export is blocked unless `JOB_OS_ACCESS_TOKEN` is configured **and** presented: preventing accidental LAN data leaks.
 
 ### 6. Do not expose to the public internet
 
-The bearer-token model is appropriate for **trusted LAN devices only**, not internet-facing deployment. There is no OIDC, RBAC, or CSRF token on server actions — by design for single-user local-first use.
+The bearer-token model is appropriate for **trusted LAN devices only**, not internet-facing deployment. There is no OIDC, RBAC, or CSRF token on server actions: by design for single-user local-first use.
 
 ---
 
@@ -270,9 +270,9 @@ Never commit `.secrets/`. Never log secret values. Integration status APIs retur
 ### First-time secrets setup
 
 1. Start the app: `npm run dev`
-2. Open `/integrations` and paste API keys — saved to `.secrets/keys.json`
+2. Open `/integrations` and paste API keys: saved to `.secrets/keys.json`
 3. For Gmail: set client id/secret in Integrations, then **Connect Gmail** on `/track`
-4. For backups: run `npm run backup` — encryption key auto-created at `.secrets/backup.key`
+4. For backups: run `npm run backup`: encryption key auto-created at `.secrets/backup.key`
 
 ---
 
@@ -284,7 +284,7 @@ The catch-up runner executes due background jobs idempotently:
 npm run catchup
 ```
 
-Schedule via macOS launchd — the `/outcomes` Automation panel generates an agent template. Jobs include discover, autopilot, and backup when due.
+Schedule via macOS launchd: the `/outcomes` Automation panel generates an agent template. Jobs include discover, autopilot, and backup when due.
 
 ---
 

@@ -8,7 +8,7 @@
  *   - a COLD lane that is UNDERPERFORMING (8 submitted, only 1 reached interview),
  *   - a WARM lane that is CONVERTING (5 submitted, 3 reached interview, 1 offer),
  *   - one OFFER in hand (→ the salary-coach nudge),
- *   - a SLOW median speed-to-apply (→ the "apply within 24–48h" nudge),
+ *   - a SLOW median speed-to-apply (→ the "apply within 24 to 48h" nudge),
  *   - pipeline + SKIPPED rows that must NOT count toward conversion.
  */
 import type {

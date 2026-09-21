@@ -112,7 +112,7 @@ console.log("\noutcomes - recommendations lead with what to do next:");
 const recs = view.recommendations.join(" || ");
 check("recommends the salary coach for the offer in hand", /offer/i.test(recs) && /salary coach/i.test(recs));
 check("recommends shifting to the warm-path lane", /warm-path/i.test(recs));
-check("recommends applying faster (the 24–48h / 8× lever)", /8×|24–48h|fresh/i.test(recs));
+check("recommends applying faster (the 24 to 48h / 8× lever)", /8×|24 to 48h|fresh/i.test(recs));
 check("at least 3 recommendations", view.recommendations.length >= 3);
 
 console.log("\noutcomes - determinism + provenance bounds:");

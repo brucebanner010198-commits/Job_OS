@@ -1,6 +1,6 @@
 /**
  * Cartesia + Pipecat live VoiceSource (Phase 13) - the COST-CONTROL voice path
- * (plan §5: Cartesia ~$0.03–0.05/min vs ElevenLabs ~$0.08–0.16/min, the default
+ * (plan §5: Cartesia ~$0.03 to $0.05/min vs ElevenLabs ~$0.08 to $0.16/min, the default
  * for heavy mock-interview practice). Same VoiceSource seam as the ElevenLabs
  * adapter, so getVoiceSource() can pick it with zero call-site changes.
  *

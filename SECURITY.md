@@ -1,22 +1,22 @@
-# Security Policy
+# Security policy
 
-Job OS is a **local-first, single-user** job-search operating system. It is designed to run on your machine — not as a multi-tenant cloud SaaS. This document summarizes the threat model, supported deployment assumptions, and how to report vulnerabilities.
+Job OS is a **local-first, single-user** job-search operating system. It is designed to run on your machine, not as a multi-tenant cloud SaaS. This document summarizes the threat model, supported deployment assumptions, and how to report vulnerabilities.
 
 ## Supported deployment model
 
 | Environment | Trust assumption |
 |-------------|------------------|
-| **Loopback** (`localhost`, `127.0.0.1`, `::1`) | Trusted — no bearer token required |
-| **Home / office LAN** (`0.0.0.0` bind) | **Requires `JOB_OS_ACCESS_TOKEN`** — shared bearer for API + server actions |
-| **Internet-facing** | **Not supported** — no OIDC, RBAC, or CSRF on server actions |
+| **Loopback** (`localhost`, `127.0.0.1`, `::1`) | Trusted: no bearer token required |
+| **Home / office LAN** (`0.0.0.0` bind) | **Requires `JOB_OS_ACCESS_TOKEN`**: shared bearer for API and server actions |
+| **Internet-facing** | **Not supported**: no OIDC, RBAC, or CSRF on server actions |
 
 ## Threat model summary
 
 ### Assets
 
-- **Integration secrets** — API keys in `.secrets/keys.json`, Gmail OAuth tokens, backup encryption key
-- **Profile data** — resumes, applications, interview notes, knowledge chunks
-- **Automation profile** — Playwright Chrome user data under `.secrets/apply-chrome-profile/`
+- **Integration secrets**: API keys in `.secrets/keys.json`, Gmail OAuth tokens, backup encryption key
+- **Profile data**: resumes, applications, interview notes, knowledge chunks
+- **Automation profile**: Playwright Chrome user data under `.secrets/apply-chrome-profile/`
 
 ### Primary threats
 
@@ -32,15 +32,15 @@ Job OS is a **local-first, single-user** job-search operating system. It is desi
 | **Rate abuse on LAN** | In-memory limit: 100 req/min/IP on protected API prefixes |
 | **LLM prompt injection via job descriptions** | Delimiter stripping and structural hardening in LLM prompts |
 | **Plaintext secrets at rest** | `.secrets/` mode `0600`/`0700`; use FileVault; exclude from cloud sync |
-| **Token leakage via query string** | `?token=` deprecated — use Bearer header or cookie |
+| **Token leakage via query string** | `?token=` deprecated: use Bearer header or cookie |
 
 ### Residual risks (accepted for local-first design)
 
-- **Shared bearer token** — appropriate for trusted LAN devices only, not internet deployment
-- **No CSRF tokens on server actions** — single-user local-first by design
-- **Gmail OAuth static state** — low impact in single-user context; signed state planned
-- **Gmail push webhook** — shared secret only; optional Pub/Sub OIDC when `GMAIL_PUSH_VERIFY_OIDC=1`
-- **Multi-profile isolation** — scoped via `AppScope` + `profileId`; report cross-profile leaks promptly
+- **Shared bearer token**: appropriate for trusted LAN devices only, not internet deployment
+- **No CSRF tokens on server actions**: single-user local-first by design
+- **Gmail OAuth static state**: low impact in single-user context; signed state planned
+- **Gmail push webhook**: shared secret only; optional Pub/Sub OIDC when `GMAIL_PUSH_VERIFY_OIDC=1`
+- **Multi-profile isolation**: scoped via `AppScope` and `profileId`; report cross-profile leaks promptly
 
 ## `.secrets` hygiene
 
@@ -55,7 +55,7 @@ All sensitive local state lives under `.secrets/` (gitignored):
 
 **Do not** commit `.secrets/`. **Do not** sync `.secrets/` to iCloud, Dropbox, or unencrypted backups. Enable **FileVault** on macOS.
 
-Resolution order: Integrations portal → `.secrets/keys.json` → `.env` fallback. Status APIs return `configured: true/false` only — never secret values.
+Resolution order: Integrations portal → `.secrets/keys.json` → `.env` fallback. Status APIs return `configured: true/false` only, never secret values.
 
 ## Reporting a vulnerability
 
@@ -82,5 +82,5 @@ CI runs `test:security` plus `npm audit --audit-level=high` on every push and pu
 
 ## Additional documentation
 
-- [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) — LAN hardening, env checklist, backup security
-- [LICENSE](./LICENSE) — usage terms (personal free; third-party commercial requires agreement)
+- [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md): LAN hardening, env checklist, backup security
+- [LICENSE](./LICENSE): usage terms (personal free; third-party commercial requires agreement)

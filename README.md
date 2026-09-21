@@ -1,6 +1,6 @@
 # Job OS
 
-Local-first AI job-search operating system: discover roles, research companies, tailor resumes, apply with human review gates, track Gmail proposals, and practice interviews — all on your machine.
+Local-first AI job-search operating system: discover roles, research companies, tailor resumes, apply with human review gates, track Gmail proposals, and practice interviews, all on your machine.
 
 ## Quickstart (~10 minutes)
 
@@ -50,11 +50,11 @@ npm run dev
 
 Smoke URLs:
 
-- http://localhost:3000 — dashboard
-- http://localhost:3000/setup — setup wizard
-- http://localhost:3000/jobs — discover + score
-- http://localhost:3000/apply — review gate
-- http://localhost:3000/track — Gmail kanban (fixtures without OAuth)
+- http://localhost:3000: dashboard
+- http://localhost:3000/setup: setup wizard
+- http://localhost:3000/jobs: discover and score
+- http://localhost:3000/apply: review gate
+- http://localhost:3000/track: Gmail kanban (fixtures without OAuth)
 
 ### 6. Verify
 
@@ -103,7 +103,7 @@ rm -rf .next
 npm run dev
 ```
 
-Never delete `.next` while `next dev` is still running — file locks can leave a corrupt cache.
+Never delete `.next` while `next dev` is still running. File locks can leave a corrupt cache.
 
 ## Security notes
 
@@ -113,6 +113,6 @@ Never delete `.next` while `next dev` is still running — file locks can leave 
 
 ## Desktop (optional)
 
-Packaged Tauri build with macOS Keychain secrets — see `src-tauri/README.md`.
+Packaged Tauri build with macOS Keychain secrets. See `src-tauri/README.md`.
 
-**Platform priority:** local-first by default — primary target is a macOS desktop app (Tauri) with the same Next.js UI served locally; LAN web hosting is supported equally for the same workflow. LAN token entry UI is deferred.
+**Platform priority:** local-first by default. The primary target is a macOS desktop app (Tauri) with the same Next.js UI served locally; LAN web hosting is supported equally for the same workflow. LAN token entry UI is deferred.

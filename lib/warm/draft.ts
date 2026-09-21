@@ -118,7 +118,7 @@ export function draftIntroRequest(
     requester.fullName,
   ].join("\n");
 
-  // Email gets a short 2–4 word subject; a LinkedIn DM has none.
+  // Email gets a short 2 to 4 word subject; a LinkedIn DM has none.
   const subject =
     channel === "email" ? `Quick question - ${company}` : undefined;
 

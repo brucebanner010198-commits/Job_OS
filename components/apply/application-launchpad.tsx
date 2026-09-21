@@ -275,7 +275,7 @@ export function ApplicationLaunchpad({
               </Badge>
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Internal referrals achieve <strong>25%–60% interview rates</strong> versus <strong>2%–5% for cold applications</strong>.
+              Internal referrals achieve <strong>25% to 60% interview rates</strong> versus <strong>2% to 5% for cold applications</strong>.
             </p>
             <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-muted/40 p-2.5 text-xs">
               <span>{referralContact ? `Contact available at ${company}: ${referralContact}` : `Search your network for 1st/2nd-degree connections at ${company}.`}</span>

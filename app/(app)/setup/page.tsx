@@ -50,7 +50,7 @@ export default async function SetupPage() {
         title="Setup"
         description={
           setup.complete
-            ? "Your profile is ready — autopilot is handling discovery and preparation."
+            ? "Your profile is ready. Autopilot is handling discovery and preparation."
             : "Choose your path, share your background, coach through gaps, and confirm your profile."
         }
         action={

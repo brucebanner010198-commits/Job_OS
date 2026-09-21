@@ -155,7 +155,7 @@ export function assessGhost(raw: RawJob): RiskAssessment {
     raw.salaryMax >= raw.salaryMin * 4
   ) {
     reasons.push(
-      `Salary band is implausibly wide ($${raw.salaryMin}–$${raw.salaryMax}, max ≥ 4× min)`,
+      `Salary band is implausibly wide (${raw.salaryMin} to ${raw.salaryMax}, max ≥ 4× min)`,
     );
     score += W_ABSURD_SALARY_BAND;
   }

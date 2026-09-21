@@ -381,7 +381,7 @@ export function ApplyWorkspace({
       <div className="rounded-xl border border-border bg-card p-5">
         <h2 className="mb-1 font-medium">Offline preview</h2>
         <p className="mb-4 text-sm text-muted-foreground">
-          Plans built from fixture jobs with no database — expand any card to see
+          Plans built from fixture jobs with no database: expand any card to see
           routing logic and the review gate.
         </p>
         <div className="space-y-3">

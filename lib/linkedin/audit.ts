@@ -5,10 +5,10 @@
  * 100-point weighted scoring against LinkedIn's All-Star criteria.
  *
  * Score → Tier:
- *   0–39   Beginner
- *  40–64   Intermediate
- *  65–84   Advanced
- *  85–100  All-Star
+ *   0 to 39   Beginner
+ *  40 to 64   Intermediate
+ *  65 to 84   Advanced
+ *  85 to 100  All-Star
  *
  * Weight allocation (total 100):
  *   Headline (present, ≥40 chars, keyword-rich)  15
@@ -64,7 +64,7 @@ function scoreHeadline(
         "Headline",
         "high",
         "No headline set - your profile shows nothing below your name.",
-        "Write a headline that leads with keywords recruiters search: role, specialisms, and 1–2 differentiators (e.g. \"Senior Backend Engineer | Distributed Systems | TypeScript, Rust | Ex-Stripe\").",
+        "Write a headline that leads with keywords recruiters search: role, specialisms, and 1 or 2 differentiators (e.g. \"Senior Backend Engineer | Distributed Systems | TypeScript, Rust | Ex-Stripe\").",
       ),
     );
     return 0;
@@ -76,7 +76,7 @@ function scoreHeadline(
         "Headline",
         "high",
         `Headline is too short (${h.length} chars). LinkedIn shows ~220 chars; short headlines rank lower.`,
-        "Expand your headline to at least 40–80 characters. Include your primary role, 2–3 key skills or technologies, and a differentiator or value statement.",
+        "Expand your headline to at least 40 to 80 characters. Include your primary role, 2 to 3 key skills or technologies, and a differentiator or value statement.",
       ),
     );
     return 5;
@@ -112,7 +112,7 @@ function scoreAbout(
         "About",
         "high",
         "About / Summary section is empty - LinkedIn's algorithm penalises missing summaries.",
-        "Write at least 200–300 words covering: who you are, what you do, your top 3 accomplishments, technologies you use, and a call-to-action (e.g. \"Open to senior IC or EM roles in climate-tech; reach out at …\").",
+        "Write at least 200 to 300 words covering: who you are, what you do, your top 3 accomplishments, technologies you use, and a call-to-action (e.g. \"Open to senior IC or EM roles in climate-tech; reach out at …\").",
       ),
     );
     return 0;
@@ -221,7 +221,7 @@ function scoreSkills(
         "Skills",
         "low",
         `${input.skillsCount} skills listed - consider adding more (LinkedIn allows up to 50).`,
-        "Expand to 20–50 skills. Include niche tools and frameworks; recruiters often filter on very specific technology names.",
+        "Expand to 20 to 50 skills. Include niche tools and frameworks; recruiters often filter on very specific technology names.",
       ),
     );
   }
@@ -275,7 +275,7 @@ function scoreExperience(
         "Experience",
         "high",
         "No experience entries found. An empty Experience section is a hard stop for most recruiters.",
-        "Add at least your current or most recent role. Include a description of 3–5 bullet points covering scope, technologies used, and quantified achievements.",
+        "Add at least your current or most recent role. Include a description of 3 to 5 bullet points covering scope, technologies used, and quantified achievements.",
       ),
     );
     return 0;
@@ -311,7 +311,7 @@ function scoreFeatured(
         "Featured",
         "low",
         "Featured section is empty or absent. Featured is prime real-estate above the fold.",
-        "Add 1–3 featured items: a link to a portfolio or project, a published article, a conference talk, a GitHub repo, or a compelling media post. It differentiates you visually.",
+        "Add 1 to 3 featured items: a link to a portfolio or project, a published article, a conference talk, a GitHub repo, or a compelling media post. It differentiates you visually.",
       ),
     );
     return 0;
@@ -334,7 +334,7 @@ function scoreRecommendations(
         "Recommendations",
         "low",
         "No recommendations received. Third-party endorsements are the strongest trust signal on LinkedIn.",
-        "Ask 2–3 former managers, colleagues, or clients to write a short recommendation. Give them a prompt: what project you worked on together and what outcome you delivered. Offer to reciprocate.",
+        "Ask 2 or 3 former managers, colleagues, or clients to write a short recommendation. Give them a prompt: what project you worked on together and what outcome you delivered. Offer to reciprocate.",
       ),
     );
     return 0;
@@ -481,7 +481,7 @@ export function profileFromText(text: string): LinkedInProfileInput {
   let skillsCount = 0;
   const skillLines = sectionLines("skill");
   if (skillLines.length > 0) {
-    // Each skill is typically 1–5 words on its own line
+    // Each skill is typically 1 to 5 words on its own line
     skillsCount = skillLines.filter((l) => l.length > 0 && l.length < 60).length;
   }
   // Fallback: "Show all X skills"

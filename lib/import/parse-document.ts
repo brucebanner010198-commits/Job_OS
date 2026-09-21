@@ -1,5 +1,5 @@
 /**
- * Resume document ingestion — PDF and DOCX text extraction for Path A import.
+ * Resume document ingestion: PDF and DOCX text extraction for Path A import.
  *
  * Scanned/image-only PDFs are detected and rejected with a clear message;
  * OCR is deferred to a later phase.
@@ -93,7 +93,7 @@ export async function parseResumeDocument(file: File): Promise<ParsedResumeDocum
     const { text, hasTextLayer } = await extractPdfText(buffer);
     if (!hasTextLayer) {
       throw new Error(
-        "This PDF has little or no selectable text — it may be a scanned image. " +
+        "This PDF has little or no selectable text. It may be a scanned image. " +
           "Export a text-based PDF from Word or Google Docs, or paste your resume below.",
       );
     }

@@ -58,7 +58,7 @@ function getOfflineSynthesizedGoals(input: {
 }
 
 /**
- * 4–6 short, specific questions to help the user articulate direction, tailored
+ * 4 to 6 short, specific questions to help the user articulate direction, tailored
  * to their existing profile. Standard tier; these set up synthesizeGoals.
  */
 export async function suggestGoalQuestions(

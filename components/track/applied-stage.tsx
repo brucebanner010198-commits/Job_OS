@@ -1,5 +1,5 @@
 /**
- * Applied stage composition (plan §5.4) — inbox proposals + Applied kanban column
+ * Applied stage composition (plan §5.4): inbox proposals + Applied kanban column
  * in one focused view. Proposals sit above the Applied column; the rest of the
  * pipeline board renders below without duplicating Applied.
  */
@@ -25,7 +25,7 @@ export function AppliedStageCompose({
       <div className="mb-4">
         <h2 className="text-lg font-semibold tracking-tight">Applied</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          What&apos;s in flight — confirm Gmail-detected updates, then track submitted
+          What&apos;s in flight: confirm Gmail-detected updates, then track submitted
           applications waiting for a response.
         </p>
       </div>

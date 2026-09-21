@@ -46,7 +46,7 @@ export type AuditTier = "Beginner" | "Intermediate" | "Advanced" | "All-Star";
 
 /** Full audit result returned to the UI. */
 export interface AuditResult {
-  /** 0–100 weighted completion score. */
+  /** 0 to 100 weighted completion score. */
   score: number;
   tier: AuditTier;
   findings: AuditFinding[];

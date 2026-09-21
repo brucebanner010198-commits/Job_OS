@@ -51,7 +51,7 @@ function fmtSalary(min: number | null, max: number | null): string | null {
   if (!min && !max) return null;
   const fmt = (n: number) =>
     n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`;
-  if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+  if (min && max) return `${fmt(min)} to ${fmt(max)}`;
   if (min) return `${fmt(min)}+`;
   if (max) return `up to ${fmt(max)}`;
   return null;
@@ -202,7 +202,7 @@ function JobRow({
             <Link
               href="/warm-path"
               className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
-              title="Referrals have 25%–60% callback vs 2%–5% cold"
+              title="Referrals have 25% to 60% callback vs 2% to 5% cold"
             >
               <UserCheck className="h-3.5 w-3.5" />
               Check Warm Intro (10x callback)
@@ -619,7 +619,7 @@ export function JobsQueue({
                 variant={filterFreshOnly ? "accent" : "outline"}
                 onClick={() => setFilterFreshOnly((v) => !v)}
                 className="h-7 gap-1.5 text-xs"
-                title="Candidates applying in first 72h receive 2x–4x higher callback rates (Federal Reserve labor studies)"
+                title="Candidates applying in first 72h receive 2x to 4x higher callback rates (Federal Reserve labor studies)"
               >
                 <Zap className="h-3 w-3" />
                 &lt;72h Early Advantage ({freshCount})

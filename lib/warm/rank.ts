@@ -144,7 +144,7 @@ function kindBlurb(pathKind: PathKind, company: string): string {
   }
 }
 
-/** 2–4 grounded lines explaining who this is and WHY it's a path. */
+/** 2 to 4 grounded lines explaining who this is and WHY it's a path. */
 function buildReasons(
   conn: Connection,
   target: WarmTarget,

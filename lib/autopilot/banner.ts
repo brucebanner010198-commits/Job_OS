@@ -1,5 +1,5 @@
 /**
- * Autopilot banner view model — slim status for active pipeline stages.
+ * Autopilot banner view model: slim status for active pipeline stages.
  */
 import { listApplications } from "@/lib/apply/service";
 import { loadWatermarks } from "@/lib/scheduler/service";
@@ -44,9 +44,9 @@ export async function getAutopilotBannerData(
 
   let line: string;
   if (running) {
-    line = "Autopilot running — discovering roles and preparing applications";
+    line = "Autopilot running: discovering roles and preparing applications";
   } else if (!lastRunAt) {
-    line = "Autopilot on — awaiting first run";
+    line = "Autopilot on: awaiting first run";
   } else if (recentlyRan) {
     const detail = autopilotWm?.lastDetail;
     line = detail

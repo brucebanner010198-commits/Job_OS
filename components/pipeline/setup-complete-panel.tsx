@@ -14,7 +14,7 @@ export function SetupCompletePanel({ setup }: { setup: SetupStatus }) {
       <h2 className="mt-4 text-lg font-medium">Profile ready</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         Your resume and career goals are saved. Autopilot is discovering roles and
-        preparing applications — review anything that needs your approval in Applying.
+        preparing applications. Review anything that needs your approval in Applying.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

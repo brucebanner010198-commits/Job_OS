@@ -1,5 +1,5 @@
 /**
- * GET /api/health — readiness snapshot for local ops and setup UX (Phase 4A).
+ * GET /api/health: readiness snapshot for local ops and setup UX (Phase 4A).
  * Public on loopback; not in PROTECTED_API_PREFIXES (see test-security).
  */
 import { NextResponse } from "next/server";

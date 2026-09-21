@@ -1,4 +1,4 @@
-# Job OS — desktop shell (Tauri v2)
+# Job OS: desktop shell (Tauri v2)
 
 This wraps the Next.js app in a native macOS window. It's the proper home for the
 three things that must stay local (plan §D): the **OS keychain** (secrets), the
@@ -7,7 +7,7 @@ three things that must stay local (plan §D): the **OS keychain** (secrets), the
 
 > **Status: scaffold.** The TypeScript side of Phase 12 (the keychain `SecretStore`
 > and the launchd installer) is built and tested. This Rust shell can't be compiled
-> in CI — build it on your Mac with the steps below.
+> in CI: build it on your Mac with the steps below.
 
 ## One-time setup
 

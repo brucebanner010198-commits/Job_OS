@@ -3,7 +3,7 @@
  *
  * Emits a single-column, table-free, image-free HTML document with selectable
  * text and print rules tuned so the browser's "Save as PDF" yields a clean
- * 1–2 page resume. Real PDF generation (headless Chromium via Playwright) is
+ * 1 or 2 page resume. Real PDF generation (headless Chromium via Playwright) is
  * wired in Phase 5; for now this HTML is print-to-PDF ready.
  *
  * Every text fragment is run through sanitizeForAts() (smart quotes, em-dashes,
@@ -42,7 +42,7 @@ function joinPresent(values: (string | undefined | null)[], sep: string): string
     .join(sep);
 }
 
-/** Format a role's date/location right-hand line: "location · start–end". */
+/** Format a role's date/location right-hand line: "location · start to end". */
 function metaLine(
   location: string | undefined,
   start: string,

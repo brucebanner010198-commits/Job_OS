@@ -1,6 +1,6 @@
 # Contributing to Job OS
 
-Thank you for your interest in Job OS. This project is **source-available** under a custom license — personal and non-commercial use is free; third-party commercial use requires a royalty agreement. See [LICENSE](./LICENSE) and [COMMERCIAL-LICENSE.md](./COMMERCIAL-LICENSE.md).
+Thank you for your interest in Job OS. This project is **source-available** under a custom license. Personal and non-commercial use is free; third-party commercial use requires a royalty agreement. See [LICENSE](./LICENSE) and [COMMERCIAL-LICENSE.md](./COMMERCIAL-LICENSE.md).
 
 **No CLA is required** for personal contributions. By contributing, you agree that your contributions are licensed under the same terms as the project, and that third-party commercial use of the codebase remains subject to the commercial restrictions in the LICENSE.
 
@@ -21,7 +21,7 @@ See [README.md](./README.md) and [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for 
 ## Development workflow
 
 1. **Fork** the repository (or branch from `main` if you are a maintainer).
-2. **Create a focused branch** — one logical change per pull request when possible.
+2. **Create a focused branch**: one logical change per pull request when possible.
 3. **Run quality gates locally** before opening a PR (see below).
 4. **Open a pull request** against `main` with a clear description and test plan.
 
@@ -68,7 +68,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/) style, match
 | `chore:` | Maintenance, tooling, release hygiene |
 | `refactor:` | Code change that neither fixes a bug nor adds a feature |
 
-**Scope** (optional): `feat(apply):`, `fix(security):`, `ci:` — use when it clarifies the affected area.
+**Scope** (optional): `feat(apply):`, `fix(security):`, `ci:`. Use when it clarifies the affected area.
 
 Examples from this repository:
 
@@ -94,10 +94,10 @@ docs: add backend API contracts and deployment guide
 
 ## Code style
 
-- **TypeScript** — strict mode; match existing patterns in surrounding files
-- **Server actions** — gate reads with `requireAccessForRead()`, mutations with `requireAccessForMutation()`
-- **Validation** — use Zod schemas in `lib/validation/` for mutating action inputs
-- **Secrets** — never log secret values; never commit `.secrets/` or `.env`
+- **TypeScript**: strict mode; match existing patterns in surrounding files
+- **Server actions**: gate reads with `requireAccessForRead()`, mutations with `requireAccessForMutation()`
+- **Validation**: use Zod schemas in `lib/validation/` for mutating action inputs
+- **Secrets**: never log secret values; never commit `.secrets/` or `.env`
 
 ## Dependency updates
 

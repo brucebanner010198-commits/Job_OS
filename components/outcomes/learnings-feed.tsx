@@ -1,5 +1,5 @@
 /**
- * Outcome learnings feed — surfaces rejection insights from the learning loop.
+ * Outcome learnings feed: surfaces rejection insights from the learning loop.
  */
 "use client";
 
@@ -172,7 +172,7 @@ export function LearningsFeed({
         </div>
         <p className="text-xs text-muted-foreground">
           Actionable fixes captured when you confirm rejections on the tracker.
-          Advisory only — nothing auto-changes your profile.
+          Advisory only: nothing auto-changes your profile.
         </p>
       </CardHeader>
       <CardContent>

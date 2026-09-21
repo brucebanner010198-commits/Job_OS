@@ -56,7 +56,7 @@ const SIGNAL_PATTERNS: { phrase: string; kind: RejectionSuggestion["kind"]; sugg
   {
     phrase: "moving forward with",
     kind: "targeting",
-    suggestion: "Standard pass - note company/role for warm-path follow-up in 6–12 months.",
+    suggestion: "Standard pass - note company/role for warm-path follow-up in 6 to 12 months.",
   },
   {
     phrase: "experience",

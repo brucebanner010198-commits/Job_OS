@@ -19,7 +19,7 @@ function check(name: string, cond: boolean) {
 async function main() {
   const { parseResumeDocument } = await import("@/lib/import/parse-document");
 
-  console.log("\nparse-document — validation:");
+  console.log("\nparse-document: validation:");
 
   const emptyRejected = await parseResumeDocument(
     new File([], "resume.pdf", { type: "application/pdf" }),

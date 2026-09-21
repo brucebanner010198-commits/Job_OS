@@ -174,8 +174,8 @@ function AuditResultPanel({ result }: { result: AuditResult }) {
         {/* Tier legend */}
         <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
           <span>Beginner (&lt;40)</span>
-          <span>Intermediate (40–64)</span>
-          <span>Advanced (65–84)</span>
+          <span>Intermediate (40 to 64)</span>
+          <span>Advanced (65 to 84)</span>
           <span>All-Star (85+)</span>
         </div>
       </div>

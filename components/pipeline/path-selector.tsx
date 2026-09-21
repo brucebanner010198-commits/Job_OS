@@ -27,7 +27,7 @@ export function PathSelector({
       path: "no-resume",
       icon: MessageSquare,
       title: "I don't have a resume",
-      description: "Paste what you know or talk through your career — we'll build your profile from scratch.",
+      description: "Paste what you know or talk through your career. We will build your profile from scratch.",
     },
   ];
 

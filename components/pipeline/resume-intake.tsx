@@ -134,7 +134,7 @@ export function ResumeIntake({
           )}
         </Button>
         <p className="mt-2 text-xs text-muted-foreground">
-          Scanned PDFs are not supported — use a text-based export or paste below.
+          Scanned PDFs are not supported. Use a text-based export or paste below.
         </p>
       </div>
 

@@ -1,5 +1,5 @@
 /**
- * Security audit events (Phase 4A). Metadata only — never log secret values,
+ * Security audit events (Phase 4A). Metadata only: never log secret values,
  * profile payloads, or export contents.
  */
 import { logger } from "@/lib/observability/logger";

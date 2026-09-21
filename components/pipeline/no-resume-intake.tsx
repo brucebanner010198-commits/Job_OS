@@ -75,7 +75,7 @@ export function NoResumeIntake({
           <VoiceInput
             value={initialPaste}
             onChange={onPasteChange}
-            placeholder="Paste LinkedIn About, job history, education, skills — anything you have…"
+            placeholder="Paste LinkedIn About, job history, education, skills, or anything you have..."
             rows={10}
           />
           {initialPaste.trim().length > 0 && !preview && (
@@ -110,7 +110,7 @@ export function NoResumeIntake({
       {mode === "conversation" && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            No problem — the career coach will walk you through your history step by step.
+            No problem: the career coach will walk you through your history step by step.
             You can also add a quick note below if you want to give a head start.
           </p>
           <VoiceInput

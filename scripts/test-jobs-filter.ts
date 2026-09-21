@@ -34,7 +34,7 @@ const REAL_JD = `
   Requirements: 5+ years of software engineering experience, strong knowledge of
   relational databases, proficiency in at least one systems language (Go, Rust, C++).
   Experience with Kubernetes and cloud platforms (AWS or GCP) is preferred.
-  Salary: $150,000 – $190,000 per year. Remote-friendly with optional San Francisco HQ.
+  Salary: $150,000 - $190,000 per year. Remote-friendly with optional San Francisco HQ.
   We offer comprehensive health, dental, vision, and 401k matching.
 `;
 
@@ -61,7 +61,7 @@ const DIFFERENT_JD = `
   infrastructure, collaboration with product teams to define metrics.
   Requirements: MS or PhD in a quantitative field, 3+ years ML/data science experience,
   proficiency in Python and SQL, familiarity with distributed training frameworks.
-  Salary: $140,000 – $175,000. New York or remote.
+  Salary: $140,000 - $175,000. New York or remote.
 `;
 
 // Ghost job: evergreen language + very short description
@@ -87,7 +87,7 @@ const CLEAN_JD = `
   You will work closely with product managers and engineers to ship new features.
   Responsibilities: user research, wireframing, prototyping, design system maintenance.
   Requirements: 3+ years of product design experience, strong portfolio, Figma proficiency.
-  Salary: $130,000 – $160,000. San Francisco or remote.
+  Salary: $130,000 - $160,000. San Francisco or remote.
 `;
 
 // --- Helpers ---------------------------------------------------------------
@@ -182,7 +182,7 @@ const cleanJob = makeJob({
 const seniorNoSalaryJob = makeJob({
   company: "Startup",
   title: "Senior Software Engineer",
-  description: REAL_JD.replace(/\$[\d,]+ – \$[\d,]+ per year/i, ""),
+  description: REAL_JD.replace(/\$[\d,]+ - \$[\d,]+ per year/i, ""),
 });
 
 const ghostResult = assessGhost(ghostJob);

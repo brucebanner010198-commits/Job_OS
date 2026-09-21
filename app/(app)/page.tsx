@@ -78,7 +78,7 @@ export default async function DashboardPage() {
         <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
           {setup.complete
             ? setup.setupPartial
-              ? "Your profile is ready, but coaching was skipped — refine goals anytime. Applications are prepared for your review before submission."
+              ? "Your profile is ready, but coaching was skipped: refine goals anytime. Applications are prepared for your review before submission."
               : `You are in ${currentStage.label.toLowerCase()}. Applications are prepared for your review before submission.`
             : "Import your resume and define career goals to activate job discovery and application preparation."}
         </p>

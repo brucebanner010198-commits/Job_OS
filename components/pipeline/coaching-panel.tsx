@@ -144,7 +144,7 @@ export function CoachingPanel({
 
       {finalGapCheck && remainingGaps.length > 0 && (
         <div className="rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-3 text-sm">
-          <p className="font-medium">Before we wrap up — any of these to add?</p>
+          <p className="font-medium">Before we wrap up: any of these to add?</p>
           <ul className="mt-1 list-inside list-disc text-muted-foreground">
             {remainingGaps.map((g, i) => (
               <li key={i}>{g}</li>
@@ -241,7 +241,7 @@ export function CoachingPanel({
             onClick={() => onComplete(turns)}
             className="ml-auto"
           >
-            I&apos;m done — compile profile
+            I&apos;m done: compile profile
           </Button>
         )}
       </div>

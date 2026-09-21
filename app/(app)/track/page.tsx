@@ -69,7 +69,7 @@ export default async function TrackPage({
     <main className="page-container-wide">
       <PageHeader
         title="Applied"
-        description="Gmail proposes status changes for submitted applications — you confirm each one. Track cards live in the Applied column below."
+        description="Gmail proposes status changes for submitted applications. You confirm each one. Track cards live in the Applied column below."
       />
 
       {dbError && <DbBanner />}

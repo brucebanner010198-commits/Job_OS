@@ -23,7 +23,7 @@ import { assessScam } from "./scam";
  * 0.50 means "50% of 3-word shingles overlap" - catches copy-pasted JDs (the
  * common case of the same posting scraped from 5 sources) with minor formatting
  * differences while leaving genuinely different roles alone. True Jaccard for
- * the same posting with minor edits is typically 0.7–0.95; for different roles
+ * the same posting with minor edits is typically 0.7 to 0.95; for different roles
  * it is typically < 0.10.
  */
 export const NEARDUP_THRESHOLD = 0.50;
