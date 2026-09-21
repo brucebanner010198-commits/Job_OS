@@ -16,5 +16,31 @@ export async function register(): Promise<void> {
       logger.error("Unhandled rejection (crashing process)", { reason: String(reason) });
       process.exit(1);
     });
+
+    const shutdown = async (signal: string) => {
+      logger.info(`Received ${signal}. Starting graceful shutdown...`, { domain: "lifecycle" });
+      const timeout = setTimeout(() => {
+        logger.error("Graceful shutdown timed out after 5s. Exiting forcefully.", { domain: "lifecycle" });
+        process.exit(1);
+      }, 5000);
+      timeout.unref();
+
+      try {
+        const { disconnectDatabase } = await import("@/lib/db");
+        await disconnectDatabase();
+        logger.info("Database connections closed cleanly.", { domain: "lifecycle" });
+      } catch (err) {
+        logger.error("Error during database shutdown", { error: String(err) });
+      } finally {
+        process.exit(0);
+      }
+    };
+
+    process.on("SIGTERM", () => {
+      void shutdown("SIGTERM");
+    });
+    process.on("SIGINT", () => {
+      void shutdown("SIGINT");
+    });
   }
 }

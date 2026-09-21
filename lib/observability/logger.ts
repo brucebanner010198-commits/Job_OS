@@ -11,12 +11,42 @@ export interface LogFields {
   [key: string]: unknown;
 }
 
+const SENSITIVE_KEY_PATTERN = /(token|secret|password|authorization|cookie|key|credential)/i;
+
+function sanitizeValue(key: string, value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (SENSITIVE_KEY_PATTERN.test(key) && typeof value === "string") {
+    return "[REDACTED]";
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeValue(key, item));
+  }
+  if (typeof value === "object") {
+    const sanitizedObj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      sanitizedObj[k] = SENSITIVE_KEY_PATTERN.test(k) && typeof v === "string" ? "[REDACTED]" : sanitizeValue(k, v);
+    }
+    return sanitizedObj;
+  }
+  return value;
+}
+
+function sanitizeFields(fields?: LogFields): LogFields | undefined {
+  if (!fields) return undefined;
+  const cleaned: LogFields = {};
+  for (const [k, v] of Object.entries(fields)) {
+    cleaned[k] = SENSITIVE_KEY_PATTERN.test(k) && typeof v === "string" ? "[REDACTED]" : sanitizeValue(k, v);
+  }
+  return cleaned;
+}
+
 function emit(level: LogLevel, message: string, fields?: LogFields): void {
+  const sanitized = sanitizeFields(fields);
   const entry = {
     ts: new Date().toISOString(),
     level,
     message,
-    ...fields,
+    ...sanitized,
   };
   const line = JSON.stringify(entry);
   if (level === "error") {

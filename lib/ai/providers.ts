@@ -106,6 +106,19 @@ export async function universalChat(opts: ChatOptions): Promise<ChatResult> {
   return chatOpenRouter(opts, openrouterKey ?? "");
 }
 
+function resolveTimeoutSignal(signal?: AbortSignal, timeoutMs = 45_000): AbortSignal {
+  if (signal) {
+    if ("any" in AbortSignal && typeof (AbortSignal as unknown as { any?: (signals: AbortSignal[]) => AbortSignal }).any === "function") {
+      return (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([
+        signal,
+        AbortSignal.timeout(timeoutMs),
+      ]);
+    }
+    return signal;
+  }
+  return AbortSignal.timeout(timeoutMs);
+}
+
 async function chatOllama(opts: ChatOptions, baseUrl: string): Promise<ChatResult> {
   const model = opts.model ?? process.env.LOCAL_MODEL_NAME ?? "llama3.2";
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
@@ -122,7 +135,7 @@ async function chatOllama(opts: ChatOptions, baseUrl: string): Promise<ChatResul
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: opts.signal,
+    signal: resolveTimeoutSignal(opts.signal),
   });
 
   if (!res.ok) {
@@ -165,7 +178,7 @@ async function chatOpenRouter(opts: ChatOptions, apiKey: string): Promise<ChatRe
       "X-Title": "Job OS",
     },
     body: JSON.stringify(body),
-    signal: opts.signal,
+    signal: resolveTimeoutSignal(opts.signal),
   });
 
   if (!res.ok) {
@@ -197,7 +210,7 @@ async function chatOpenAI(opts: ChatOptions, apiKey: string): Promise<ChatResult
       ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
     }),
-    signal: opts.signal,
+    signal: resolveTimeoutSignal(opts.signal),
   });
 
   if (!res.ok) {
@@ -239,7 +252,7 @@ async function chatGemini(opts: ChatOptions, apiKey: string): Promise<ChatResult
         ...(opts.json ? { responseMimeType: "application/json" } : {}),
       },
     }),
-    signal: opts.signal,
+    signal: resolveTimeoutSignal(opts.signal),
   });
 
   if (!res.ok) {
@@ -278,7 +291,7 @@ async function chatAnthropic(opts: ChatOptions, apiKey: string): Promise<ChatRes
       temperature: opts.temperature ?? 0.3,
       ...(systemMessage ? { system: systemMessage } : {}),
     }),
-    signal: opts.signal,
+    signal: resolveTimeoutSignal(opts.signal),
   });
 
   if (!res.ok) {

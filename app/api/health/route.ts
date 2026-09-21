@@ -7,7 +7,25 @@ import pkg from "@/package.json";
 import { pingDatabase } from "@/lib/db-health";
 import { allIntegrationStatuses } from "@/lib/integrations/registry";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const probe = url.searchParams.get("probe");
+
+  if (probe === "liveness") {
+    return NextResponse.json(
+      {
+        status: "ok",
+        uptimeSec: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString(),
+        version: pkg.version,
+      },
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
+
   const [dbHealth, integrations] = await Promise.all([
     pingDatabase(),
     allIntegrationStatuses(),

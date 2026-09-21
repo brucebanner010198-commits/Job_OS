@@ -18,12 +18,33 @@ function getConnectionString(): string {
   return connectionString;
 }
 
-/** Shared pg pool — use for silent reachability checks (avoids Prisma error logs). */
+/** Shared pg pool: use for reachability checks and Prisma adapter. */
 export function getDbPool(): Pool {
   if (!globalForPrisma.pool) {
-    globalForPrisma.pool = new Pool({ connectionString: getConnectionString() });
+    const pool = new Pool({
+      connectionString: getConnectionString(),
+      max: parseInt(process.env.DB_POOL_MAX || "20", 10),
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    pool.on("error", (err) => {
+      console.error("Unexpected error on idle pg client:", err);
+    });
+    globalForPrisma.pool = pool;
   }
   return globalForPrisma.pool;
+}
+
+/** Gracefully disconnect Prisma and pg pool on process termination. */
+export async function disconnectDatabase(): Promise<void> {
+  if (globalForPrisma.prisma) {
+    await globalForPrisma.prisma.$disconnect().catch(() => {});
+    globalForPrisma.prisma = undefined;
+  }
+  if (globalForPrisma.pool) {
+    await globalForPrisma.pool.end().catch(() => {});
+    globalForPrisma.pool = undefined;
+  }
 }
 
 function createPrismaClient(): PrismaClient {

@@ -51,6 +51,7 @@ export async function embedText(text: string): Promise<number[] | null> {
           ? { provider: { zdr: true, data_collection: "deny" } }
           : {}),
       }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!res.ok) return null;
