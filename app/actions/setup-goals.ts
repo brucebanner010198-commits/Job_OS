@@ -5,7 +5,6 @@ import { getAppContext } from "@/lib/app-context";
 import { nonSensitiveProfileText, upsertGoal, getGoal } from "@/lib/goals/service";
 import { chat } from "@/lib/ai/openrouter";
 import { db } from "@/lib/db";
-import { scopeWhere } from "@/lib/profiles/scope";
 import type { CareerGoalData } from "@/lib/goals/types";
 
 export interface RoleRecommendation {

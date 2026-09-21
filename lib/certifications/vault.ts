@@ -48,7 +48,7 @@ export async function saveCertificationDocument(
   const issueDateParsed = input.issueDate ? new Date(input.issueDate) : null;
 
   // Add a ProfileEntry so this certification is part of the master CV
-  const entryResult = await addEntries(scope, [
+  await addEntries(scope, [
     {
       kind: "CERTIFICATION",
       data: {

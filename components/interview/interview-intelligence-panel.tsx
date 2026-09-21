@@ -7,13 +7,10 @@ import {
   UserCheck,
   BookOpen,
   Trophy,
-  ArrowUpRight,
   ChevronDown,
   ChevronUp,
   MessageSquare,
   Calendar,
-  AlertCircle,
-  Lightbulb,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

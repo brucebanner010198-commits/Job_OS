@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { askCopilotAction, type CopilotAnswerResult } from "@/app/actions/apply-copilot";
+import { askCopilotAction } from "@/app/actions/apply-copilot";
 
 export interface ApplicationLaunchpadProps {
   isOpen: boolean;

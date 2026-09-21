@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Sparkles, Target, Building2, Sliders, Check, ArrowRight, Loader2, Plus, X } from "lucide-react";
+import { Sparkles, Target, Building2, Sliders, ArrowRight, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

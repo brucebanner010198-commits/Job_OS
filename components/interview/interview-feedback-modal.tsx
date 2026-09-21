@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MessageSquare, Check, Loader2, X, Star } from "lucide-react";
+import { MessageSquare, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { saveDictationAction } from "@/app/actions/profile";
 
 export function InterviewFeedbackModal({

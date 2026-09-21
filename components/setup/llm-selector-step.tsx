@@ -9,7 +9,6 @@ import {
   getLlmConfigAction,
   saveLlmConfigAction,
   probeLocalLlmAction,
-  type LlmConfigState,
 } from "@/app/actions/setup-ai";
 
 export function LlmSelectorStep({

@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, TrendingUp, Award, Target, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
+import { Briefcase, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export function EmployedModeWidget({
   currentStatus = "HUNTING",
   currentCompany,
-  currentRole,
+  currentRole: _currentRole,
 }: {
   currentStatus?: "HUNTING" | "EMPLOYED";
   currentCompany?: string;
