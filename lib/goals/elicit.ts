@@ -35,6 +35,28 @@ const questionsSchema = z.object({ questions: z.array(z.string()) });
 
 const HORIZON_LIST = HORIZONS.map((h) => `${h} (${HORIZON_LABEL[h]})`).join(", ");
 
+function getOfflineSynthesizedGoals(input: {
+  note: string;
+  profileText: string;
+}): CareerGoalData {
+  const note = input.note || input.profileText || "Software engineering and career advancement.";
+  return {
+    northStar: "Build impactful systems, master modern technologies, and lead engineering initiatives.",
+    summary: note.slice(0, 300),
+    targetTitles: ["Senior Software Engineer", "Tech Lead", "Staff Engineer"],
+    targetIndustries: ["Technology", "Software", "Cloud Computing"],
+    milestones: [
+      { horizon: "SIX_MONTHS", text: "Target high-fit roles and refine core portfolio", metric: "10 target applications", inferred: true },
+      { horizon: "ONE_YEAR", text: "Secure offer and excel in key deliverables", metric: "1 accepted offer", inferred: true },
+      { horizon: "TWO_YEARS", text: "Drive architectural initiatives and mentor team members", metric: "Lead major system component", inferred: true },
+      { horizon: "THREE_YEARS", text: "Expand domain leadership across cross-functional teams", metric: "Staff-level impact", inferred: true },
+      { horizon: "FOUR_YEARS", text: "Establish org-wide engineering standards and direction", metric: "Org technical strategy", inferred: true },
+      { horizon: "FIVE_YEARS", text: "Lead multi-team engineering programs or department", metric: "Principal/Director scope", inferred: true },
+      { horizon: "TEN_YEARS", text: "Reach executive technical or entrepreneurial pinnacle", metric: "Industry impact", inferred: true },
+    ],
+  };
+}
+
 /**
  * 4–6 short, specific questions to help the user articulate direction, tailored
  * to their existing profile. Standard tier; these set up synthesizeGoals.
@@ -51,19 +73,29 @@ export async function suggestGoalQuestions(
     "One sentence each, no numbering. " +
     'Respond ONLY as JSON: { "questions": ["…", "…"] }.';
 
-  const { value } = await chatJson(questionsSchema, {
-    task: "careerGoals",
-    temperature: 0.5,
-    maxTokens: 500,
-    messages: [
-      { role: "system", content: system },
-      {
-        role: "user",
-        content: `BACKGROUND (non-sensitive profile):\n${profileText || "(no profile yet)"}`,
-      },
-    ],
-  });
-  return value.questions.slice(0, 6);
+  try {
+    const { value } = await chatJson(questionsSchema, {
+      task: "careerGoals",
+      temperature: 0.5,
+      maxTokens: 500,
+      messages: [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: `BACKGROUND (non-sensitive profile):\n${profileText || "(no profile yet)"}`,
+        },
+      ],
+    });
+    return value.questions.slice(0, 6);
+  } catch (err) {
+    console.warn("[suggestGoalQuestions] LLM unavailable, using default prompts:", err);
+    return [
+      "Where do you see yourself making the highest impact in the next 1-2 years?",
+      "What core technical or leadership skills do you most want to build or leverage next?",
+      "What type of team culture, environment, or company scale fits you best?",
+      "What is your target 5-10 year career vision or north star?",
+    ];
+  }
 }
 
 /**
@@ -101,14 +133,19 @@ ${input.profileText || "(no profile yet)"}
 
 Produce the structured career goals JSON now.`;
 
-  const { value } = await chatJson(goalDataSchema, {
-    task: "careerGoals",
-    temperature: 0.3,
-    maxTokens: 1200,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-  });
-  return value;
+  try {
+    const { value } = await chatJson(goalDataSchema, {
+      task: "careerGoals",
+      temperature: 0.3,
+      maxTokens: 1200,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    });
+    return value;
+  } catch (err) {
+    console.warn("[synthesizeGoals] LLM unavailable, using offline structured synthesis:", err);
+    return getOfflineSynthesizedGoals(input);
+  }
 }

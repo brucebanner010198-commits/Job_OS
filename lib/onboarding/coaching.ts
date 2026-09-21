@@ -97,6 +97,85 @@ function buildContextBlock(
   return parts.join("\n\n");
 }
 
+function getOfflineStartCoaching(input: {
+  path: OnboardingPath;
+  profileText: string;
+}): CoachingTurnResult {
+  const isResume = input.path === "resume";
+  const assistantMessage = isResume
+    ? "Welcome! I have loaded your imported profile. To help prioritize opportunities effectively, what specific target roles or industries are you aiming for next, and what is your top priority in your next position?"
+    : "Welcome! Let us build your profile together. To get started, what was your most recent job title and company, and what was one major achievement or project you delivered there?";
+
+  return {
+    assistantMessage,
+    coverage: {
+      sufficient: false,
+      gaps: isResume ? ["target_direction", "target_industries"] : ["recent_experience", "skills", "goals"],
+      sections: {
+        experience: isResume ? "confirmed" : "missing",
+        education: isResume ? "confirmed" : "missing",
+        skills: isResume ? "partial" : "missing",
+        certifications: "missing",
+        projects: isResume ? "partial" : "missing",
+        goals: "missing",
+      },
+    },
+    shouldStop: false,
+    finalGapCheck: false,
+    remainingGaps: ["target_direction"],
+  };
+}
+
+function getOfflineTurnResult(input: {
+  userMessage: string;
+  turns: CoachingTurn[];
+}): CoachingTurnResult {
+  const done = userDoneSignal(input.userMessage);
+  const totalTurns = input.turns.length;
+
+  if (done || totalTurns >= 3) {
+    return {
+      assistantMessage:
+        "Thank you. I have captured your background, key strengths, and target goals. You can now review your compiled profile and proceed to the next step.",
+      coverage: {
+        sufficient: true,
+        gaps: [],
+        sections: {
+          experience: "confirmed",
+          education: "confirmed",
+          skills: "confirmed",
+          certifications: "partial",
+          projects: "confirmed",
+          goals: "confirmed",
+        },
+      },
+      shouldStop: true,
+      finalGapCheck: false,
+      remainingGaps: [],
+    };
+  }
+
+  return {
+    assistantMessage:
+      "Understood. What are the key technical tools, programming languages, or leadership skills you want emphasized most in your target applications?",
+    coverage: {
+      sufficient: false,
+      gaps: ["skills_focus"],
+      sections: {
+        experience: "confirmed",
+        education: "partial",
+        skills: "partial",
+        certifications: "missing",
+        projects: "partial",
+        goals: "partial",
+      },
+    },
+    shouldStop: false,
+    finalGapCheck: false,
+    remainingGaps: ["skills_focus"],
+  };
+}
+
 /**
  * Generate the opening coaching message based on path and existing profile.
  */
@@ -115,17 +194,22 @@ export async function startCoachingSession(input: {
       : `${context}\n\nThe user does not have a resume. Start warmly and ask them to ` +
         "walk you through their most recent role — title, company, dates, and one key win.";
 
-  const { value } = await chatJson(coachingResponseSchema, {
-    task: "onboardingCoaching",
-    temperature: 0.4,
-    maxTokens: 800,
-    messages: [
-      { role: "system", content: COACHING_SYSTEM },
-      { role: "user", content: userPrompt },
-    ],
-  });
+  try {
+    const { value } = await chatJson(coachingResponseSchema, {
+      task: "onboardingCoaching",
+      temperature: 0.4,
+      maxTokens: 800,
+      messages: [
+        { role: "system", content: COACHING_SYSTEM },
+        { role: "user", content: userPrompt },
+      ],
+    });
 
-  return normalizeResult(value);
+    return normalizeResult(value);
+  } catch (err) {
+    console.warn("[onboardingCoaching] LLM unavailable, using offline fallback:", err);
+    return getOfflineStartCoaching(input);
+  }
 }
 
 /**
@@ -152,18 +236,23 @@ export async function processCoachingTurn(input: {
       : "") +
     `USER MESSAGE:\n${input.userMessage}`;
 
-  const { value } = await chatJson(coachingResponseSchema, {
-    task: "onboardingCoaching",
-    temperature: 0.4,
-    maxTokens: 900,
-    messages: [
-      { role: "system", content: COACHING_SYSTEM },
-      ...history,
-      { role: "user", content: userContent },
-    ],
-  });
+  try {
+    const { value } = await chatJson(coachingResponseSchema, {
+      task: "onboardingCoaching",
+      temperature: 0.4,
+      maxTokens: 900,
+      messages: [
+        { role: "system", content: COACHING_SYSTEM },
+        ...history,
+        { role: "user", content: userContent },
+      ],
+    });
 
-  return normalizeResult(value);
+    return normalizeResult(value);
+  } catch (err) {
+    console.warn("[onboardingCoaching] LLM unavailable, using offline turn fallback:", err);
+    return getOfflineTurnResult({ userMessage: input.userMessage, turns: input.turns });
+  }
 }
 
 export function userDoneSignal(text: string): boolean {

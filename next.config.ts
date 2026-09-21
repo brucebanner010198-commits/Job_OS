@@ -15,13 +15,38 @@ const nextConfig: NextConfig = {
   distDir,
   // Standalone output for the Tauri desktop sidecar (Phase 12).
   output: "standalone",
-  // Prisma must stay external to the server bundle.
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  // Prisma, PDF, and DOCX parsers must stay external to the server bundle.
+  serverExternalPackages: ["@prisma/client", "prisma", "pdf-parse", "pdfjs-dist", "mammoth"],
   experimental: {
     // Server Actions are used for profile updates, apply flows, etc.
     serverActions: {
       bodySizeLimit: "8mb", // resume/PDF uploads
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:;",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+    ];
   },
 };
 

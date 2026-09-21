@@ -15,10 +15,8 @@ import { DbBanner } from "@/components/db-banner";
 import { getBoardView, listProposalViews, previewTrack } from "@/lib/track/service";
 import { gmailStatus, type GmailStatus } from "@/lib/gmail";
 import { disconnectGmailAction } from "@/app/actions/track";
-import {
-  AppliedStageCompose,
-  splitBoardForAppliedStage,
-} from "@/components/track/applied-stage";
+import { AppliedStageCompose } from "@/components/track/applied-stage";
+import { splitBoardForAppliedStage } from "@/lib/track/board";
 import { TrackBoard } from "@/components/track/track-board";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";

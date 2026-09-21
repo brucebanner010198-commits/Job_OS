@@ -61,11 +61,5 @@ export function AppliedStageCompose({
   );
 }
 
-export function splitBoardForAppliedStage(board: BoardColumnView[]): {
-  appliedColumn: BoardColumnView | undefined;
-  restBoard: BoardColumnView[];
-} {
-  const appliedColumn = board.find((col) => col.status === ("APPLIED" satisfies AppStatus));
-  const restBoard = board.filter((col) => col.status !== "APPLIED");
-  return { appliedColumn, restBoard };
-}
+export { splitBoardForAppliedStage } from "@/lib/track/board";
+

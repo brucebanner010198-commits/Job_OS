@@ -9,6 +9,7 @@
  * text upstream and feed it into `importResumeText`.
  */
 import { extractFromResume } from "@/lib/profile/extract";
+import { extractFromResumeHeuristic } from "./heuristic";
 import { addEntries, saveNote } from "@/lib/profile/service";
 import type { AppScope } from "@/lib/profiles/types";
 import { ProfileEntryKind } from "@prisma/client";
@@ -24,13 +25,20 @@ function toKind(kind: string): ProfileEntryKind | null {
 /**
  * Import a pasted resume: parse it into entries, store the raw text as a note,
  * and persist the entries. Unknown/invalid kinds from the model are skipped.
+ * Falls back to heuristic parsing if the AI model is unconfigured or unreachable.
  * Returns how many entries were added and which kinds they covered.
  */
 export async function importResumeText(
   scope: AppScope,
   text: string,
 ): Promise<{ added: number; kinds: string[] }> {
-  const extracted = await extractFromResume(text);
+  let extracted;
+  try {
+    extracted = await extractFromResume(text);
+  } catch (err) {
+    console.warn("AI resume extraction failed, using heuristic extraction fallback:", err);
+    extracted = extractFromResumeHeuristic(text);
+  }
 
   await saveNote(scope, text, null, "import");
 
