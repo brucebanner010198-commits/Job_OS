@@ -40,7 +40,7 @@ function detectFormat(file: { name: string; type: string }): ResumeDocumentForma
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ text: string; hasTextLayer: boolean }> {
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjs = await import(/* webpackIgnore: true */ "pdfjs-dist/legacy/build/pdf.mjs");
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(buffer),
     useSystemFonts: true,
@@ -124,13 +124,14 @@ export async function parseResumeDocument(file: File): Promise<ParsedResumeDocum
     try {
       result = await extractPdfText(buffer);
     } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : String(err);
       throw JobOSError.dataLoss({
         domain: "job_os.import",
         reason: "PDF_PARSE_FAILED",
         location: "lib/import/parse-document.ts:extractPdfText",
-        message:
-          "Could not parse this PDF file. It may be corrupt or encrypted. Try re-saving it or paste your resume below.",
+        message: `Could not parse this PDF file (${detail}). Try re-saving it or paste your resume below.`,
         remedy: "Re-save the PDF without password protection, or copy and paste the text directly.",
+        metadata: { errorDetail: detail },
         cause: err,
       });
     }
