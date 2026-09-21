@@ -38,19 +38,24 @@ function detectFormat(file: { name: string; type: string }): ResumeDocumentForma
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ text: string; hasTextLayer: boolean }> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    const text = (result.text ?? "").replace(/\r\n/g, "\n").trim();
-    return { text, hasTextLayer: text.length >= MIN_TEXT_CHARS };
-  } finally {
-    try {
-      await parser.destroy();
-    } catch {
-      // ignore cleanup errors
-    }
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(buffer),
+    useSystemFonts: true,
+    disableFontFace: true,
+  });
+  const doc = await loadingTask.promise;
+  const pageTexts: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item) => ("str" in item ? (item as { str: string }).str : ""))
+      .join(" ");
+    pageTexts.push(pageText);
   }
+  const text = pageTexts.join("\n\n").replace(/\r\n/g, "\n").trim();
+  return { text, hasTextLayer: text.length >= MIN_TEXT_CHARS };
 }
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
@@ -90,7 +95,15 @@ export async function parseResumeDocument(file: File): Promise<ParsedResumeDocum
   const warnings: string[] = [];
 
   if (format === "pdf") {
-    const { text, hasTextLayer } = await extractPdfText(buffer);
+    let result: { text: string; hasTextLayer: boolean };
+    try {
+      result = await extractPdfText(buffer);
+    } catch {
+      throw new Error(
+        "Could not parse this PDF file. It may be corrupt or encrypted. Try re-saving it or paste your resume below.",
+      );
+    }
+    const { text, hasTextLayer } = result;
     if (!hasTextLayer) {
       throw new Error(
         "This PDF has little or no selectable text. It may be a scanned image. " +
