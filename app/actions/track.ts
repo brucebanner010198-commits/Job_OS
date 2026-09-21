@@ -29,7 +29,7 @@ export async function syncInboxAction(): Promise<{
 }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     const result = await syncInbox(scope);
     revalidatePath("/track");
     return {
@@ -55,7 +55,7 @@ export async function confirmProposalAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await confirmProposal(scope, proposalId);
     revalidatePath("/track");
     return { ok: true };
@@ -73,7 +73,7 @@ export async function dismissProposalAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await dismissProposal(scope, proposalId);
     revalidatePath("/track");
     return { ok: true };
@@ -92,7 +92,7 @@ export async function moveApplicationAction(
 ): Promise<{ ok: boolean }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await moveApplication(scope, applicationId, toStatus);
     revalidatePath("/track");
     return { ok: true };
@@ -105,7 +105,7 @@ export async function moveApplicationAction(
 export async function disconnectGmailAction(): Promise<{ ok: boolean }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await disconnectGmail(scope);
     revalidatePath("/track");
     return { ok: true };

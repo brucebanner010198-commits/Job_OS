@@ -187,6 +187,8 @@ const seniorNoSalaryJob = makeJob({
 
 const ghostResult = assessGhost(ghostJob);
 const cleanGhostResult = assessGhost(cleanJob);
+const seniorNoSalaryGhostResult = assessGhost(seniorNoSalaryJob);
+check("seniorNoSalaryJob evaluated", seniorNoSalaryGhostResult.score >= 0);
 
 check(
   `ghost job score (${ghostResult.score.toFixed(3)}) ≥ GHOST_THRESHOLD (${GHOST_THRESHOLD})`,
@@ -237,11 +239,7 @@ check("exact dup: duplicates = 1", resultA.stats.duplicates === 1);
 check("exact dup: dropped job has excludeReason 'duplicate'", resultA.dropped[0]?.excludeReason === "duplicate");
 check("exact dup: canonical has longer description", resultA.kept[0].raw.description.length > resultA.dropped[0].raw.description.length);
 
-// Test B: near-duplicate (same role, reworded JD)
-const jobB1 = makeJob({ company: "NearCo", title: "Senior Software Engineer", description: REAL_JD, location: "New York" });
-const jobB2 = makeJob({ company: "NearCo", title: "Senior Software Engineer", description: NEARDUP_JD, location: "New York" });
-// These have the SAME identity hash (same company/title/location) so they'll be exact dups.
-// To test near-dup, use different companies but same JD text.
+// Test B: near-duplicate (same role, reworded JD across different sources)
 const jobB3 = makeJob({ company: "SourceAlpha", title: "Backend Engineer", description: REAL_JD, location: "San Francisco" });
 const jobB4 = makeJob({ company: "SourceBeta", title: "Backend Engineer", description: NEARDUP_JD, location: "San Francisco" });
 const resultB = screen([jobB3, jobB4]);

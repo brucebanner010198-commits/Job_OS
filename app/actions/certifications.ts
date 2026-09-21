@@ -15,8 +15,11 @@ export async function uploadCertificationAction(
 ): Promise<CertificationView> {
   await requireAccessForMutation();
   const file = formData.get("file");
-  if (!(file instanceof File)) {
+  if (!(file instanceof File) || file.size === 0) {
     throw new Error("Please select a certification document or PDF file.");
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error("File is too large. Maximum size is 10 MB.");
   }
 
   const title = (formData.get("title") as string)?.trim() || file.name.replace(/\.[^/.]+$/, "");

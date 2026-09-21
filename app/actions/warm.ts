@@ -30,7 +30,7 @@ export async function refreshConnectionsAction(): Promise<{
 }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     const result = await refreshConnections(scope);
     revalidatePath("/warm-path");
     return { ok: true, created: result.created, live: result.live };
@@ -51,7 +51,7 @@ export async function generateIntroAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await generateIntro(scope, company, applicationId);
     revalidatePath("/warm-path");
     return { ok: true };
@@ -69,7 +69,7 @@ export async function markIntroSentAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await markIntroSent(scope, id);
     revalidatePath("/warm-path");
     return { ok: true };
@@ -87,7 +87,7 @@ export async function skipIntroAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await skipIntro(scope, id);
     revalidatePath("/warm-path");
     return { ok: true };

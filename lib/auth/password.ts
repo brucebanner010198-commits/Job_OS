@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 
 export interface PasswordEvaluation {
   isValid: boolean;
@@ -106,30 +106,29 @@ export function generateStrongPassword(): string {
   const digits = "23456789";
   const symbols = "!@#$%^&*_-+=";
 
-  // Guarantee at least 2 of each category
+  // Guarantee at least 2 of each category with cryptographic randomness
   const guaranteed = [
-    uppers[Math.floor(Math.random() * uppers.length)],
-    uppers[Math.floor(Math.random() * uppers.length)],
-    lowers[Math.floor(Math.random() * lowers.length)],
-    lowers[Math.floor(Math.random() * lowers.length)],
-    digits[Math.floor(Math.random() * digits.length)],
-    digits[Math.floor(Math.random() * digits.length)],
-    symbols[Math.floor(Math.random() * symbols.length)],
-    symbols[Math.floor(Math.random() * symbols.length)],
+    uppers[randomInt(0, uppers.length)],
+    uppers[randomInt(0, uppers.length)],
+    lowers[randomInt(0, lowers.length)],
+    lowers[randomInt(0, lowers.length)],
+    digits[randomInt(0, digits.length)],
+    digits[randomInt(0, digits.length)],
+    symbols[randomInt(0, symbols.length)],
+    symbols[randomInt(0, symbols.length)],
   ];
 
   const allChars = uppers + lowers + digits + symbols;
   const remainingCount = 10;
-  const randomBytesBuffer = randomBytes(remainingCount);
   const remaining: string[] = [];
   for (let i = 0; i < remainingCount; i++) {
-    remaining.push(allChars[randomBytesBuffer[i] % allChars.length]);
+    remaining.push(allChars[randomInt(0, allChars.length)]);
   }
 
   const combined = [...guaranteed, ...remaining];
-  // Fisher-Yates shuffle
+  // Cryptographically secure Fisher-Yates shuffle
   for (let i = combined.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = randomInt(0, i + 1);
     [combined[i], combined[j]] = [combined[j], combined[i]];
   }
 

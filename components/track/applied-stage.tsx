@@ -7,7 +7,7 @@
 
 import { InboxProposals } from "@/components/track/inbox-proposals";
 import { TrackBoardColumn } from "@/components/track/track-board";
-import type { AppStatus, BoardColumnView, ProposalView } from "@/lib/track/types";
+import type { BoardColumnView, ProposalView } from "@/lib/track/types";
 
 export function AppliedStageCompose({
   proposals,

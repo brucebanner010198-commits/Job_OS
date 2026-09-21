@@ -8,7 +8,7 @@ import Link from "next/link";
 export function EmployedModeWidget({
   currentStatus = "HUNTING",
   currentCompany,
-  currentRole: _currentRole,
+  currentRole,
 }: {
   currentStatus?: "HUNTING" | "EMPLOYED";
   currentCompany?: string;
@@ -35,7 +35,7 @@ export function EmployedModeWidget({
             </div>
             <p className="text-[11px] text-muted-foreground">
               {status === "EMPLOYED"
-                ? `Tracking promotion milestones and quarterly impact at ${currentCompany || "your company"}.`
+                ? `Tracking promotion milestones and quarterly impact${currentRole ? ` as ${currentRole}` : ""} at ${currentCompany || "your company"}.`
                 : "Autopilot is actively crawling, scoring, and preparing applications."}
             </p>
           </div>

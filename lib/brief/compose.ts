@@ -29,7 +29,7 @@ import {
   type FetchedSource,
 } from "@/lib/brief/types";
 import { entails } from "@/lib/brief/entailment";
-import { classifyFact, isVolatile, isStale } from "@/lib/brief/volatile";
+import { isVolatile, isStale } from "@/lib/brief/volatile";
 import { sanitizePromptText } from "@/lib/security/prompt-sanitize";
 
 // ---------------------------------------------------------------------------

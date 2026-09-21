@@ -43,6 +43,7 @@ export const PROTECTED_API_PREFIXES = [
   "/api/gmail",
   "/api/integrations",
   "/api/apply",
+  "/api/extension",
 ];
 
 export function accessTokenConfigured(): boolean {

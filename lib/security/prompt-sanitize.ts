@@ -24,6 +24,9 @@ const PROMPT_SECTION =
 const FENCED_ROLE_BLOCK =
   /```\s*(system|user|assistant|instructions?)\b/gi;
 
+const FENCE_DELIMITERS =
+  /<{2,}\/?\s*(?:END_)?UNTRUSTED_JOB_TEXT\s*>{2,}/gi;
+
 function bracketNeutral(match: string): string {
   const inner = match.replace(/[<>\[\]|/\\`]/g, "").trim();
   return inner ? `[${inner}]` : "[]";
@@ -34,6 +37,8 @@ export function sanitizePromptText(text: string): string {
   if (!text) return "";
 
   let out = text;
+  out = out.replace(FENCE_DELIMITERS, bracketNeutral);
+  out = out.replace(/<{3,}/g, "<<").replace(/>{3,}/g, ">>");
   out = out.replace(ROLE_LINE, (_, role: string) => `[${role.toLowerCase()}]`);
   out = out.replace(XML_ROLE_TAG, bracketNeutral);
   out = out.replace(BRACKET_MARKERS, bracketNeutral);

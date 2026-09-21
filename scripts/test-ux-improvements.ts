@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { isUnder72Hours, calculateDecayedScore } from "../components/jobs/jobs-queue";
 import { computeStarBreakdown } from "../components/coaching/star-balance-meter";
 import type { JobView } from "../lib/jobs/pipeline";
-import type { ProfileEntry } from "@prisma/client";
 
 function mockJob(overrides: Partial<JobView>): JobView {
   return {

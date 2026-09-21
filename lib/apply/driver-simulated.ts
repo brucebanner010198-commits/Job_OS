@@ -56,7 +56,7 @@ export function simulatedDriver(config?: {
       _filledFields = fields;
     },
 
-    async attachResume(_pdfPath: string): Promise<boolean> {
+    async attachResume(): Promise<boolean> {
       return true;
     },
 

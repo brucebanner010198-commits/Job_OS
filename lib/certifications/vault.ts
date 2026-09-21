@@ -27,6 +27,8 @@ export interface CertificationView {
   createdAt: string;
 }
 
+const MAX_CERT_BYTES = 10 * 1024 * 1024; // 10 MB
+
 /**
  * Saves a certification or diploma file (PDF, image, doc) locally,
  * records it in the CertificationDocument vault, and syncs a structured
@@ -36,14 +38,20 @@ export async function saveCertificationDocument(
   scope: AppScope,
   input: SaveCertificationInput,
 ): Promise<CertificationView> {
+  if (input.buffer.length > MAX_CERT_BYTES) {
+    throw new Error(
+      `File is too large (${Math.round(input.buffer.length / 1024 / 1024)} MB). Maximum size is 10 MB.`,
+    );
+  }
+
   const dir = path.join(process.cwd(), "storage", "certifications");
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
 
   const safeName = input.fileName.replace(/[^a-zA-Z0-9_.-]/g, "_");
   const localFileName = `${scope.userId}_${Date.now()}_${safeName}`;
   const localFilePath = path.join(dir, localFileName);
 
-  await fs.writeFile(localFilePath, input.buffer);
+  await fs.writeFile(localFilePath, input.buffer, { mode: 0o600 });
 
   const issueDateParsed = input.issueDate ? new Date(input.issueDate) : null;
 

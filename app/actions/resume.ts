@@ -31,7 +31,7 @@ export async function createTargetAction(
   input: CreateTargetInput,
 ): Promise<string> {
   await requireAccessForMutation();
-  const { user, scope } = await getAppContext();
+  const { scope } = await getAppContext();
   const target = await db.target.create({
     data: {
       ...scopeData(scope),

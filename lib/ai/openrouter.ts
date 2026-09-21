@@ -1,8 +1,5 @@
 import { z } from "zod";
-import { getSecret } from "@/lib/secrets";
-import { MODELS, type ModelTier, type TaskName, modelForTask } from "./models";
-
-const BASE_URL = "https://openrouter.ai/api/v1";
+import type { ModelTier, TaskName } from "./models";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -33,12 +30,6 @@ export interface ChatResult {
   text: string;
   model: string;
   usage?: ChatUsage;
-}
-
-function resolveModel(opts: ChatOptions): string {
-  if (opts.model) return opts.model;
-  if (opts.task) return modelForTask(opts.task);
-  return MODELS[opts.tier ?? "standard"];
 }
 
 /**

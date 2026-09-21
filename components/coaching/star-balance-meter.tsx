@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertCircle, CheckCircle2, HelpCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StarBalanceMeterProps {

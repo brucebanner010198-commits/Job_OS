@@ -3,7 +3,6 @@
  * voice configured checks). Mirrors composite order: file → env.
  */
 import { existsSync, readFileSync, statSync } from "fs";
-import path from "path";
 import { FILE_KEYS_PATH } from "@/lib/secrets/file-store";
 
 let fileCache: Record<string, string> | null = null;

@@ -1,13 +1,37 @@
 import { cookies } from "next/headers";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { db } from "@/lib/db";
 import type { User } from "@prisma/client";
 
 export const SESSION_COOKIE_NAME = "job_os_user_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days in seconds
 
+let inMemorySecret: string | null = null;
+
 function getSecretKey(): string {
-  return process.env.JOB_OS_SESSION_SECRET || process.env.JOB_OS_ACCESS_TOKEN || "job-os-internal-session-secret-key-32chars";
+  const fromEnv = process.env.JOB_OS_SESSION_SECRET?.trim() || process.env.JOB_OS_ACCESS_TOKEN?.trim();
+  if (fromEnv) return fromEnv;
+
+  const keyDir = path.join(process.cwd(), ".secrets");
+  const keyFile = path.join(keyDir, "session.key");
+
+  try {
+    if (existsSync(keyFile)) {
+      const existing = readFileSync(keyFile, "utf8").trim();
+      if (existing.length >= 32) return existing;
+    }
+    const generated = randomBytes(32).toString("hex");
+    mkdirSync(keyDir, { recursive: true, mode: 0o700 });
+    writeFileSync(keyFile, generated, { mode: 0o600 });
+    return generated;
+  } catch {
+    if (!inMemorySecret) {
+      inMemorySecret = randomBytes(32).toString("hex");
+    }
+    return inMemorySecret;
+  }
 }
 
 /** Sign a session payload (userId:timestamp) */
@@ -32,6 +56,7 @@ export function verifySessionToken(token: string): string | null {
 
     const payload = `${userId}.${timestampStr}`;
     const expectedHmac = createHmac("sha256", getSecretKey()).update(payload).digest("hex");
+    if (signature.length !== expectedHmac.length) return null;
 
     const expectedBuffer = Buffer.from(expectedHmac, "hex");
     const givenBuffer = Buffer.from(signature, "hex");

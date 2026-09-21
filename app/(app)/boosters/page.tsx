@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 export default async function BoostersPage() {
   // Section A - follow-ups (DB read, protected; falls back to the pure preview).
   const followups = await safeDb<FollowUpView[]>(async () => {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     return getFollowUpViews(scope);
   }, []);
 
@@ -36,7 +36,7 @@ export default async function BoostersPage() {
   // The coach needs only company + role for pre-fill (the user enters the
   // figures), so map the application rows to a partial OfferInput.
   const offersRes = await safeDb<Partial<OfferInput>[]>(async () => {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     const apps = await listOfferApplications(scope);
     return apps.map((a) => ({ company: a.company, role: a.jobTitle }));
   }, []);

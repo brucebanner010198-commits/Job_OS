@@ -96,7 +96,6 @@ export function VoiceInput(props: VoiceInputProps) {
     return () => {
       stopRecognition();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const appendFinal = (text: string) => {

@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     statusText.textContent = `Connected (${data.profile.name || "Profile"})`;
     dot.style.background = "#10b981";
     btn.disabled = false;
-  } catch (err) {
+  } catch {
     statusText.textContent = "Job OS offline (start dev server)";
     dot.style.background = "#ef4444";
   }

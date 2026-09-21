@@ -38,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!note) return new Response(null, { status: 204 });
 
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await syncInbox(scope);
   } catch {
     // Never fail a push (avoid retry storms) - the next wake-poll catches up.

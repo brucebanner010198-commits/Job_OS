@@ -34,7 +34,7 @@ function minutesLeft(sec: number): number {
 export default async function InterviewPage() {
   // DB read, protected; falls back to the pure offline preview below.
   const boardRes = await safeDb<InterviewBoardView | null>(async () => {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     return getInterviewBoard(scope);
   }, null);
 

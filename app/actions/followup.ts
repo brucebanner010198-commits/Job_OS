@@ -45,7 +45,7 @@ export async function markFollowUpDoneAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await markFollowUpDone(scope, id);
     revalidatePath("/boosters");
     return { ok: true };
@@ -63,7 +63,7 @@ export async function dismissFollowUpAction(
 ): Promise<{ ok: boolean; error?: string }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await dismissFollowUp(scope, id);
     revalidatePath("/boosters");
     return { ok: true };

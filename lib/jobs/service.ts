@@ -15,7 +15,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { discover } from "@/lib/jobs/sources";
 import { screen } from "@/lib/jobs/filter";
-import { scoreJobAsync, RECENCY_MAX } from "@/lib/scoring/score";
+import { scoreJobAsync } from "@/lib/scoring/score";
 import { nonSensitiveProfileText, getGoal } from "@/lib/goals/service";
 import { goalText as goalTextFrom } from "@/lib/goals/types";
 import { deriveHardFacts } from "@/lib/jobs/hard-facts";

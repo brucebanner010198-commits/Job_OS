@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { Loader2, MessageSquare, ClipboardPaste } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { VoiceInput } from "@/components/dictation/voice-input";
 import { extractInitialPasteAction } from "@/app/actions/onboarding";
 import { cn } from "@/lib/utils";

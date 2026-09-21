@@ -20,7 +20,6 @@ import {
 } from "@/lib/interview/types";
 import {
   FIXTURE_NOW,
-  fixtureFacts,
   fixturePrep,
   fixturePreps,
   fixtureStrongTranscript,

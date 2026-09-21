@@ -255,10 +255,14 @@ async function step3Goals(scope: AppScope): Promise<void> {
   const resumeText = await nonSensitiveProfileText(scope);
 
   const mlGoal: CareerGoalData = {
-    ...managerGoal,
-    northStar: "Principal ML Engineer",
-    targetTitles: ["Machine Learning Engineer"],
-    summary: "Deep technical ML path",
+    northStar: "Principal Machine Learning Engineer",
+    summary: "Deep technical ML path: train models and LLM applications.",
+    targetTitles: ["Machine Learning Engineer", "Staff Software Engineer"],
+    targetIndustries: ["AI", "data"],
+    milestones: [
+      { horizon: "SIX_MONTHS", text: "Ship an ML model and data pipeline" },
+      { horizon: "ONE_YEAR", text: "Build LLM applications with retrieval and evaluation" },
+    ],
   };
 
   const backendJob =
@@ -274,7 +278,13 @@ async function step3Goals(scope: AppScope): Promise<void> {
     resumeText,
     goalText: goalText(mlGoal),
   });
-  const goalsRerank = withManager.relevance > withMlOnBackend.relevance;
+  const withMlOnMl = goalAwareRelevance(mlJob, {
+    resumeText,
+    goalText: goalText(mlGoal),
+  });
+  const goalsRerank =
+    withManager.relevance > withMlOnBackend.relevance &&
+    withMlOnMl.relevance > withMlOnBackend.relevance;
 
   const noGoals = previewQueue({
     resumeText,
@@ -754,21 +764,25 @@ async function main(): Promise<void> {
     await step9Interview();
   } else {
     const user = await getPrimaryUser();
-    const profile = await ensureDefaultProfile(user.id);
-    const scope: AppScope = { userId: user.id, profileId: profile.id };
+    await ensureDefaultProfile(user.id);
+    const testProfile = await createProfile(user.id, `E2E-Run-${Date.now()}`);
+    const scope: AppScope = { userId: user.id, profileId: testProfile.id };
 
-    await step1Import(scope);
-    await step2Dictation(scope);
-    await step3Goals(scope);
-    await step4Jobs(scope);
-    await step5Brief();
-    await step6Tailor(scope);
-    await step7Apply();
-    await step8Gmail();
-    await step9Interview();
-    await step10Profiles(user.id, profile.id);
-
-    await cleanupScope(scope);
+    try {
+      await step1Import(scope);
+      await step2Dictation(scope);
+      await step3Goals(scope);
+      await step4Jobs(scope);
+      await step5Brief();
+      await step6Tailor(scope);
+      await step7Apply();
+      await step8Gmail();
+      await step9Interview();
+      await step10Profiles(user.id, testProfile.id);
+    } finally {
+      await cleanupScope(scope);
+      await deleteProfile(user.id, testProfile.id);
+    }
   }
 
   writeReport();

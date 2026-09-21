@@ -31,7 +31,6 @@
 
 import type {
   Connection,
-  ConnectionListOptions,
   ConnectionSource,
 } from "@/lib/warm/types";
 
@@ -51,7 +50,7 @@ export function liveConnectionSource(): ConnectionSource {
     id: "linkedin-local",
     isLive: true,
 
-    async listConnections(_opts?: ConnectionListOptions): Promise<Connection[]> {
+    async listConnections(): Promise<Connection[]> {
       // Seam only. The packaged desktop app supplies the real local-session
       // reader here. Until then, degrade to [] (never throw) so callers fall
       // back to fixtures / manual import.

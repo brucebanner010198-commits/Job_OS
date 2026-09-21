@@ -5,12 +5,19 @@
 import type { FetchedSource } from "@/lib/brief/types";
 import { safeFetch } from "@/lib/brief/fetch-utils";
 
+function escapeSparqlLiteral(str: string): string {
+  return str.replace(/["\\{}\r\n\t]/g, " ").trim().slice(0, 100);
+}
+
 export async function fetchWikidataSources(
   company: { name: string; domain?: string },
 ): Promise<FetchedSource[]> {
+  const safeName = escapeSparqlLiteral(company.name);
+  if (!safeName) return [];
+
   const query = `
     SELECT ?item ?itemLabel ?description WHERE {
-      ?item rdfs:label "${company.name.replace(/"/g, "")}"@en .
+      ?item rdfs:label "${safeName}"@en .
       OPTIONAL { ?item schema:description ?description . FILTER(LANG(?description) = "en") }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
     } LIMIT 3
@@ -30,7 +37,7 @@ export async function fetchWikidataSources(
       results?: { bindings?: Record<string, { value?: string }>[] };
     };
     const now = new Date();
-    return (data.results?.bindings ?? []).map((b, i) => {
+    return (data.results?.bindings ?? []).map((b) => {
       const label = b.itemLabel?.value ?? company.name;
       const desc = b.description?.value ?? "";
       const itemUrl = b.item?.value ?? "";

@@ -6,10 +6,36 @@
  * touched.
  */
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import {
+  accessTokenConfigured,
+  isLocalhostHost,
+  readProvidedTokenFromHeaders,
+  verifyAccessToken,
+} from "@/lib/auth/access";
 import { getAppContext } from "@/lib/app-context";
 import { restoreBackup } from "@/lib/backup/service";
 
+async function assertBackupAccessAllowed(): Promise<Response | null> {
+  const h = await headers();
+  const host = h.get("host");
+  if (isLocalhostHost(host)) return null;
+
+  if (!accessTokenConfigured()) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const provided = readProvidedTokenFromHeaders(h);
+  if (!verifyAccessToken(provided)) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  return null;
+}
+
 export async function POST(request: Request): Promise<Response> {
+  const denied = await assertBackupAccessAllowed();
+  if (denied) return denied;
   try {
     const body = await request.json().catch(() => ({}));
     const backupId = typeof body?.backupId === "string" ? body.backupId : "";

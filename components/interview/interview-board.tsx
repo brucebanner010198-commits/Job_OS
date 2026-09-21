@@ -260,7 +260,6 @@ function PrepCard({
 
 export function InterviewBoard({
   preps,
-  voice: _voice,
   caps,
   dailyRemainingSec,
   readOnly,

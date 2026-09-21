@@ -120,7 +120,7 @@ const older = new Date("2026-06-17T12:00:00.000Z");
 const newer = new Date("2026-06-19T12:00:00.000Z");
 check("null profile watermark → not stale", !isContentStale(null, older));
 check("never generated → stale", isContentStale(wm, null));
-check("profile newer → stale", isContentStale(wm, older));
+check("profile newer → stale", isContentStale(newer, older));
 check("profile older → not stale", !isContentStale(older, wm));
 check(
   "resume stale when never generated",

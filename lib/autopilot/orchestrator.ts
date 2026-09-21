@@ -63,7 +63,7 @@ export async function runAutopilotCycle(scope: AppScope): Promise<AutopilotRunRe
     if (compiled.compiledCount > 0) {
       details.push(`dynamically compiled ${compiled.compiledCount} journal milestones into master CV`);
     }
-  } catch (compileErr) {
+  } catch {
     // Non-fatal compile fallback
   }
 

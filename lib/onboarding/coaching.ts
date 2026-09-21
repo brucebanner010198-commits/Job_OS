@@ -67,21 +67,6 @@ const COACHING_SYSTEM =
   '"sections": { "experience", "education", "skills", "certifications", "projects", "goals" } }, ' +
   '"shouldStop", "finalGapCheck"?, "remainingGaps"? }';
 
-function defaultCoverage(): CoachingCoverage {
-  return {
-    sufficient: false,
-    gaps: ["Career history", "Goals"],
-    sections: {
-      experience: "missing",
-      education: "missing",
-      skills: "missing",
-      certifications: "missing",
-      projects: "missing",
-      goals: "missing",
-    },
-  };
-}
-
 function buildContextBlock(
   path: OnboardingPath,
   profileText: string,

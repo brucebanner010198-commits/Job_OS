@@ -37,7 +37,7 @@ export async function generateStudyGuideAction(
 ): Promise<{ ok: boolean }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await generateStudyGuide(scope, company, applicationId);
     revalidatePath("/interview");
     return { ok: true };
@@ -66,7 +66,7 @@ export async function startSessionAction(
 }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     const result = await startLiveSession(
       scope,
       applicationId,
@@ -96,7 +96,7 @@ export async function finishSessionAction(
 ): Promise<{ ok: boolean }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await finishSession(scope, sessionId, transcript, durationSec, mode);
     revalidatePath("/interview");
     return { ok: true };
@@ -111,7 +111,7 @@ export async function abortSessionAction(
 ): Promise<{ ok: boolean }> {
   await requireAccessForMutation();
   try {
-    const { scope, user } = await getAppContext();
+    const { scope } = await getAppContext();
     await abortSession(scope, sessionId);
     revalidatePath("/interview");
     return { ok: true };

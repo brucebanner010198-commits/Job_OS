@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function WarmPathPage() {
   const { data, dbError } = await safeDb<WarmPathView[]>(
     async () => {
-      const { scope, user } = await getAppContext();
+      const { scope } = await getAppContext();
       return getWarmBoard(scope);
     },
     [],
