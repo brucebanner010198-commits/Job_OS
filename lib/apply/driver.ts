@@ -13,14 +13,25 @@
  */
 import { simulatedDriver } from "@/lib/apply/driver-simulated";
 import { playwrightDriver } from "@/lib/apply/driver-playwright";
+import { browserUseDriver } from "@/lib/apply/driver-browser-use";
 import type { ApplyDriver } from "@/lib/apply/types";
 
-export type ApplyDriverKind = "simulated" | "playwright" | "playwright(dry-run)";
+export type ApplyDriverKind =
+  | "simulated"
+  | "playwright"
+  | "playwright(dry-run)"
+  | "browser-use"
+  | "browser-use(dry-run)";
 
 /** Which driver the current env would select (for status display / logging). */
 export function activeApplyDriverKind(): ApplyDriverKind {
-  const wantPlaywright =
-    process.env.APPLY_DRIVER === "playwright" && process.env.JOB_OS_CLOUD !== "1";
+  if (process.env.JOB_OS_CLOUD === "1") return "simulated";
+
+  if (process.env.APPLY_DRIVER === "browser-use") {
+    return process.env.APPLY_DRY_RUN === "0" ? "browser-use" : "browser-use(dry-run)";
+  }
+
+  const wantPlaywright = process.env.APPLY_DRIVER === "playwright";
   if (!wantPlaywright) return "simulated";
   return process.env.APPLY_DRY_RUN === "1" ? "playwright(dry-run)" : "playwright";
 }
@@ -29,6 +40,9 @@ export function resolveApplyDriver(opts?: { failSubmit?: boolean }): ApplyDriver
   const kind = activeApplyDriverKind();
   if (kind === "simulated") {
     return simulatedDriver({ failSubmit: opts?.failSubmit ?? false });
+  }
+  if (kind === "browser-use" || kind === "browser-use(dry-run)") {
+    return browserUseDriver({ dryRun: kind === "browser-use(dry-run)" });
   }
   return playwrightDriver({ dryRun: kind === "playwright(dry-run)" });
 }

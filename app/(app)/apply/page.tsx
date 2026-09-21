@@ -25,8 +25,10 @@ const DRIVER_BADGE: Record<
   { variant: "muted" | "success" | "warning"; label: string }
 > = {
   simulated: { variant: "muted", label: "driver: simulated (offline)" },
-  playwright: { variant: "success", label: "driver: real Chrome - armed" },
-  "playwright(dry-run)": { variant: "warning", label: "driver: real Chrome - dry run" },
+  playwright: { variant: "success", label: "driver: real Chrome: armed" },
+  "playwright(dry-run)": { variant: "warning", label: "driver: real Chrome (dry run)" },
+  "browser-use": { variant: "success", label: "driver: Browser Use: armed" },
+  "browser-use(dry-run)": { variant: "warning", label: "driver: Browser Use (dry run)" },
 };
 
 interface Loaded {

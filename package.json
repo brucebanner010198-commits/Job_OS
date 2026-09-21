@@ -23,6 +23,8 @@
     "backup": "tsx scripts/backup.ts",
     "diagnose": "tsx scripts/diagnose.ts",
     "test:diagnostics": "tsx scripts/test-diagnostics.ts",
+    "test:browser-use": ".venv-browser-use/bin/python scripts/qa_with_browser_use.py",
+    "test:browser-use-driver": "tsx scripts/test-browser-use-driver.ts",
     "install:agents": "tsx scripts/install-agents.ts",
     "tauri": "tauri",
     "test:provenance": "tsx scripts/test-provenance.ts",
