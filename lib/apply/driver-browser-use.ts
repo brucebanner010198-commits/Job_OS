@@ -156,10 +156,9 @@ export function browserUseDriver(opts?: BrowserUseDriverOptions): ApplyDriver {
 
       try {
         const result = await new Promise<PythonAgentResult>((resolve, reject) => {
-          const child = spawn(pythonExe, args, {
+          const child = spawn(/*turbopackIgnore: true*/ pythonExe, args, {
             env: { ...process.env },
             cwd: process.cwd(),
-            /*turbopackIgnore: true*/
           });
 
           let stdout = "";

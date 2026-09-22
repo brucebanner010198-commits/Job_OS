@@ -15,6 +15,13 @@ import sys
 import time
 from pathlib import Path
 
+# Automatically restart using the isolated virtual environment if it exists
+project_root = Path(__file__).resolve().parent.parent
+venv_python = project_root / ".venv-browser-use" / "bin" / "python"
+if venv_python.exists() and Path(sys.executable).resolve() != venv_python.resolve():
+    os.execl(str(venv_python), str(venv_python), *sys.argv)
+
+
 try:
     from dotenv import load_dotenv
     load_dotenv()

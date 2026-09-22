@@ -14,6 +14,13 @@ import os
 import sys
 from pathlib import Path
 
+# Automatically restart using the isolated virtual environment if it exists
+project_root = Path(__file__).resolve().parent.parent
+venv_python = project_root / ".venv-browser-use" / "bin" / "python"
+if venv_python.exists() and Path(sys.executable).resolve() != venv_python.resolve():
+    os.execl(str(venv_python), str(venv_python), *sys.argv)
+
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -186,13 +193,26 @@ Instructions:
             else len(history.agent_steps)
         )
 
+        errors = history.errors()
+        has_critical_error = len(errors) > 0 and (len(actions_taken) == 0 or len(errors) >= steps_count)
+
+        if has_critical_error:
+            return {
+                "ok": False,
+                "status": "failed",
+                "fieldsFilled": actions_taken,
+                "detail": f"Agent failed: {errors[-1]}",
+                "steps": steps_count,
+                "errors": errors,
+            }
+
         return {
             "ok": True,
             "status": "review_reached" if args.dry_run else "submitted",
             "fieldsFilled": actions_taken,
             "detail": final_result,
             "steps": steps_count,
-            "errors": history.errors(),
+            "errors": errors,
         }
     except Exception as err:
         return {
