@@ -3,13 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { requireAccessForMutation } from "@/lib/auth/require-access";
 import { getAppContext } from "@/lib/app-context";
-import { saveNote, addEntries } from "@/lib/profile/service";
-import { createWorkLog } from "@/lib/journal/service";
+import { saveNote } from "@/lib/profile/service";
+import { compileWeeklyWorkLogs, createWorkLog } from "@/lib/journal/service";
 import {
   extractCoachingSessionInsights,
   type CoachingSessionInsights,
 } from "@/lib/coaching/session-processor";
-import { ProfileEntryKind } from "@prisma/client";
 
 export interface ProcessSessionResult {
   ok: boolean;
@@ -87,41 +86,12 @@ export async function saveCoachingSessionAction(
     // 2. Save the raw session transcript as a permanent ProfileNote for provenance
     await saveNote(scope, rawTranscript, null, "coaching_session");
 
+    // 3. Turn the session into draft bullets for review. Nothing reaches the
+    //    master resume until the user approves each one on the journal page.
     let achievementsAdded = 0;
-
-    // 3. Optionally add structured facts directly to the Master Profile
     if (addToProfile) {
-      const entriesToCreate: {
-        kind: ProfileEntryKind;
-        data: unknown;
-        sourceNote?: string;
-        sensitive?: boolean;
-      }[] = [];
-
-      for (const a of insights.achievements) {
-        entriesToCreate.push({
-          kind: ProfileEntryKind.ACHIEVEMENT,
-          data: { text: a.description },
-          sourceNote: `Daily Coaching: ${insights.title}`,
-          sensitive: false,
-        });
-      }
-
-      if (insights.skills.length > 0) {
-        entriesToCreate.push({
-          kind: ProfileEntryKind.SKILL,
-          data: {
-            name: "Practiced Skills",
-            skills: insights.skills,
-          },
-          sourceNote: `Daily Coaching: ${insights.title}`,
-          sensitive: false,
-        });
-      }
-
-      if (entriesToCreate.length > 0) {
-        achievementsAdded = await addEntries(scope, entriesToCreate);
-      }
+      const { bulletsCreated } = await compileWeeklyWorkLogs(scope);
+      achievementsAdded = bulletsCreated;
     }
 
     revalidatePath("/journal");
