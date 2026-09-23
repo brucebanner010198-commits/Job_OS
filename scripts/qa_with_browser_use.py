@@ -68,12 +68,8 @@ async def run_qa_suite(args):
         return False
 
     try:
-        from browser_use import Agent
+        from browser_use import Agent, ChatOpenRouter
         from browser_use.browser.profile import BrowserProfile
-        try:
-            from browser_use.llm.openai.chat import ChatOpenAI
-        except ImportError:
-            from langchain_openai import ChatOpenAI
     except ImportError as exc:
         print(json.dumps({
             "ok": False,
@@ -101,9 +97,8 @@ Perform the following verification steps in sequence:
 After completing these checks, declare 'All verification steps completed successfully.' or report any specific failures encountered.
 """
 
-    llm = ChatOpenAI(
+    llm = ChatOpenRouter(
         model=args.model,
-        base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
         temperature=0.0,
     )
@@ -126,13 +121,7 @@ After completing these checks, declare 'All verification steps completed success
         duration = round(time.time() - start_time, 2)
         final_result = history.final_result() or "QA completed."
 
-        steps_count = (
-            history.number_of_steps()
-            if hasattr(history, "number_of_steps")
-            else len(history.agent_steps())
-            if callable(getattr(history, "agent_steps", None))
-            else len(history.agent_steps)
-        )
+        steps_count = history.number_of_steps() if hasattr(history, "number_of_steps") else len(history)
 
         has_errors = bool(history.errors()) or not history.is_successful() if hasattr(history, "is_successful") else bool(history.errors())
 

@@ -13,6 +13,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 # Automatically restart using the isolated virtual environment if it exists
 project_root = Path(__file__).resolve().parent.parent
@@ -81,12 +82,8 @@ async def run_application_agent(args):
         }
 
     try:
-        from browser_use import Agent
+        from browser_use import Agent, ChatOpenRouter
         from browser_use.browser.profile import BrowserProfile
-        try:
-            from browser_use.llm.openai.chat import ChatOpenAI
-        except ImportError:
-            from langchain_openai import ChatOpenAI
     except ImportError as exc:
         return {
             "ok": False,
@@ -154,9 +151,8 @@ Instructions:
 5. Return a brief summary of the fields filled and the state of the form.
 """
 
-    llm = ChatOpenAI(
+    llm = ChatOpenRouter(
         model=args.model,
-        base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
         temperature=0.0,
     )
@@ -165,7 +161,7 @@ Instructions:
         headless=args.headless,
     )
 
-    agent_kwargs = {
+    agent_kwargs: dict[str, Any] = {
         "task": task_prompt,
         "llm": llm,
         "browser_profile": browser_profile,
@@ -185,13 +181,7 @@ Instructions:
         final_result = history.final_result() or "Workflow finished."
         actions_taken = history.action_names()
 
-        steps_count = (
-            history.number_of_steps()
-            if hasattr(history, "number_of_steps")
-            else len(history.agent_steps())
-            if callable(getattr(history, "agent_steps", None))
-            else len(history.agent_steps)
-        )
+        steps_count = history.number_of_steps() if hasattr(history, "number_of_steps") else len(history)
 
         errors = history.errors()
         has_critical_error = len(errors) > 0 and (len(actions_taken) == 0 or len(errors) >= steps_count)

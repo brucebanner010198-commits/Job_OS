@@ -38,7 +38,7 @@ async function run() {
   let rejected = false;
   try {
     await driverDry.open("http://127.0.0.1:3000/apply");
-  } catch (err) {
+  } catch {
     rejected = true;
   }
   check("rejects non-public or loopback URLs safely", rejected);
