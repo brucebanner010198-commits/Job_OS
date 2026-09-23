@@ -17,7 +17,7 @@ On a fresh machine run `npm run setup` once first. To use it from your phone on 
 |---|---|---|
 | Every AI call failed: the saved Ollama URL lacked `/v1`, and the app asked for a model (`llama3.2`) that wasn't installed | New router talks to Ollama's native API, normalizes the URL, and picks an installed model. Installed `gemma4:12b` (default) and `qwen3.5:9b` | Live call returned "ok" via `gemma4:12b`; `test:ai-routing` 20/20 |
 | Browser Use apply and QA used a dead key from `.env` (401 "User not found") | Scripts get keys only from the app's secret store; run on the local model by default | `.env` key: HTTP 401, stored key: HTTP 200 (checked with curl) |
-| Simulated and dry-run applications were recorded as APPLIED | Drivers report `submitted`, `stopped_at_review` or `failed`. Only a real submit marks APPLIED; otherwise you confirm it | `test:apply` 60/60, `test:apply-state` 45/45 |
+| Simulated and dry-run applications were recorded as APPLIED | Drivers report `submitted`, `stopped_at_review` or `failed`. Only a real submit marks APPLIED; a filled-but-unsent application shows an "I submitted it" button on the Apply page | `test:apply` 60/60, `test:apply-state` 45/45, `test:apply-handoff` 5/5 |
 | Your name, email and phone were hardcoded as fallbacks in a public repo | Removed from code; unknown answers stay blank and are reported, never guessed | Old commits still contain them (your call: no history rewrite) |
 | Tests wrote fake data (Jane Doe, Acme Corp, a mock AWS certificate) into your real profile | DB tests now use a separate `jobos_test` database | Real profile stayed at 28 entries through 6 DB test runs |
 | Your CV import produced junk ("& Training . . . 10") because AI was broken and the fallback parser ran | Import drops table-of-contents lines, splits long CVs, copies text verbatim, saves per section, and runs long CVs in the background | Your 58,665-char CV splits into 13 sections; re-import is listed in PENDING-DELETIONS |
@@ -34,13 +34,16 @@ Every model call, embedding and transcription is written to a new `PrivacyLedger
 
 ## Tests
 
-All 44 registered test scripts pass (the two Browser Use scripts need a running app and are covered above). `test:e2e-journey` passes 10/10 but takes 6.5 minutes, because its resume-import step now runs on the real local model; my 5-minute cap cut it off in the full sweep and a rerun passed. Also green: `npx tsc --noEmit`, `npm run lint` (0/0) and `npm run build`. The app starts with `npm run jobos`, and `/`, `/journal`, `/master-resume`, `/jobs`, `/apply` and `/integrations` return 200 with no console errors on the two pages I screenshotted.
+All registered test scripts pass, including the new `test:apply-handoff` (5/5) and `test:voice-local`. `test:e2e-journey` passes 10/10 but takes 6.5 minutes, because its resume-import step now runs on the real local model; my 5-minute cap cut it off in the full sweep and a rerun passed. Also green: `npx tsc --noEmit`, `npm run lint` (0 errors, 0 warnings), `npm run build`, and GitHub CI on PR #22.
+
+The visual QA agent (`npm run test:browser-use`), which failed before tonight with "401 User not found", now passes all 5 page checks running on the local model (about 8.7 minutes). I also checked the browser console on `/journal` and `/master-resume`: no errors.
 
 ## Honest limits found tonight
 
 1. **The local model can't drive a browser.** On a public test form, `gemma4:12b` read the page correctly and listed the 4 questions it had no answers for (it didn't guess), but it kept clicking instead of typing and reported "failed". Reliable applying in Private mode needs per-site form fillers (Greenhouse, Lever, Ashby), which the plan already calls for; Enhanced mode with Gemini is the AI fallback. That work is next.
-2. **This Mac is short on memory while other apps are open.** macOS had swapped out 15 million pages; the local model ran at about 11 tokens a second. Closing Chrome and the IDE speeds everything up. A long CV import takes about 25 minutes.
-3. **Not built yet** (still in the plan): the six-screen redesign, the consent and ledger screens, readiness scores and real course sources, the autonomy ladder and Pause, per-site apply adapters, the learning loop, a scheduled daily run, and an evaluation set. I kept tonight to fixing what was broken and closing the daily loop, per your "no over-engineering" note.
+2. **Two Ollama servers share port 11434.** Your librarian Docker container answers on "localhost" with only small models. Job OS now uses 127.0.0.1 (the Ollama app), and `npm run jobos` stops with a clear message if it finds the wrong one. See PENDING-DELETIONS item 4.
+3. **This Mac is short on memory while other apps are open.** macOS had swapped out 15 million pages; the local model ran at about 11 tokens a second. Closing Chrome and the IDE speeds everything up. A long CV import takes about 25 minutes. Saving a voice session returns at once; its draft bullets appear on the journal page a minute or so later.
+4. **Not built yet** (still in the plan): the six-screen redesign, the consent and ledger screens, readiness scores and real course sources, the autonomy ladder and Pause, per-site apply adapters, the learning loop, a scheduled daily run, and an evaluation set. I kept tonight to fixing what was broken and closing the daily loop, per your "no over-engineering" note.
 
 ## Decisions I made, and why
 
