@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 /**
  * Validation test for Career Journal, Work History Compiler, and Skill Gap Routing.
  * Run with: npx tsx scripts/test-career-journal.ts

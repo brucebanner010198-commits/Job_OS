@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 import { saveCertificationDocument, listCertificationDocuments } from "../lib/certifications/vault";
 import { getAppContext } from "../lib/app-context";
 import fs from "node:fs/promises";

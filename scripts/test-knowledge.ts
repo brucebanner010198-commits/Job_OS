@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 /**
  * Knowledge Notebook RAG validation gate.
  * Run: npm run test:knowledge
