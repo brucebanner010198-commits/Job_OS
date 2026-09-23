@@ -131,8 +131,9 @@ async function main(): Promise<void> {
   }
 
   check(
-    "SOURCES contains six adapters",
-    SOURCES.length === 6 &&
+    "SOURCES contains the eight adapters",
+    SOURCES.length === 8 &&
+      SOURCES.some((s) => s.name === "ats-portals") &&
       SOURCES.some((s) => s.name === "fixtures") &&
       SOURCES.some((s) => s.name === "jsearch") &&
       SOURCES.some((s) => s.name === "remotive") &&
@@ -175,10 +176,13 @@ async function main(): Promise<void> {
 
   console.log("\noffline enablement:");
 
-  check(
-    "fixturesSource.enabled() is true offline (JOBS_USE_FIXTURES not set to 0)",
-    fixturesSource.enabled(),
-  );
+  const prevFixtures = process.env.JOBS_USE_FIXTURES;
+  delete process.env.JOBS_USE_FIXTURES;
+  check("fixturesSource is off by default", !fixturesSource.enabled());
+  process.env.JOBS_USE_FIXTURES = "1";
+  check("fixturesSource.enabled() when JOBS_USE_FIXTURES=1", fixturesSource.enabled());
+  if (prevFixtures === undefined) delete process.env.JOBS_USE_FIXTURES;
+  else process.env.JOBS_USE_FIXTURES = prevFixtures;
 
   const enabled = enabledSources();
   check(
@@ -187,8 +191,8 @@ async function main(): Promise<void> {
   );
 
   check(
-    "enabledSources() includes fixtures",
-    enabled.some((s) => s.name === "fixtures"),
+    "enabledSources() excludes fixtures by default",
+    !enabled.some((s) => s.name === "fixtures"),
   );
 
   check(
@@ -198,10 +202,13 @@ async function main(): Promise<void> {
 
   console.log("\ndiscover() offline:");
 
+  process.env.JOBS_USE_FIXTURES = "1";
   const discovered = await discover("engineer");
-  check("discover('engineer') returns non-empty array offline", discovered.length > 0);
+  if (prevFixtures === undefined) delete process.env.JOBS_USE_FIXTURES;
+  else process.env.JOBS_USE_FIXTURES = prevFixtures;
+  check("discover('engineer') returns jobs in demo mode", discovered.length > 0);
   check(
-    "discover results include fixture-sourced jobs",
+    "demo-mode results include sample jobs",
     discovered.some((j) => j.source === "fixtures"),
   );
 

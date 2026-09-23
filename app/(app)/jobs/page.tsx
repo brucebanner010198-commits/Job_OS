@@ -42,13 +42,13 @@ export default async function JobsPage() {
     return { queue, filtered, resumeText, gt, stats: null };
   }, FALLBACK);
 
-  // Degrade to offline fixture preview when DB is unavailable or queue is empty.
+  // Sample postings only in demo mode; a real empty queue shows its empty state.
   let finalQueue = data.queue;
   let finalFiltered = data.filtered;
   let finalStats = data.stats;
   let isPreview = false;
 
-  if (dbError || data.queue.length === 0) {
+  if (process.env.JOBS_USE_FIXTURES === "1" && (dbError || data.queue.length === 0)) {
     isPreview = true;
     const preview = previewQueue({
       resumeText: data.resumeText,

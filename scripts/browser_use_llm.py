@@ -60,7 +60,7 @@ def build_llm(args):
         # Page screenshots plus DOM state need a larger context than Ollama's
         # default; hidden reasoning is off because it multiplies step latency,
         # and keep_alive holds the model in memory between steps.
-        options = {"num_ctx": 32768, "think": False, "keep_alive": "30m"}
+        options = {"num_ctx": int(os.getenv("JOBOS_AGENT_CTX", "16384")), "think": False, "keep_alive": "10m"}
         return ChatOllama(model=model, host=args.ollama_url, ollama_options=options), None
 
     key = _api_key(args.provider)

@@ -1,8 +1,8 @@
 /**
  * Job-discovery source registry (plan §8 Phase 3).
  * SOURCES is the canonical ordered list of all adapters. `discover` runs all
- * enabled sources concurrently and merges their results. Always works offline
- * because fixturesSource is enabled by default (unless JOBS_USE_FIXTURES=0).
+ * enabled sources concurrently and merges their results. Sample postings
+ * (fixturesSource) run only when JOBS_USE_FIXTURES=1.
  */
 
 import type { RawJob, JobSource } from "@/lib/jobs/types";
