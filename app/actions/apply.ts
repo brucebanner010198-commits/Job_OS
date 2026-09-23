@@ -78,6 +78,19 @@ export async function resumeAiAction(
   return { ok: true };
 }
 
+/** The user did the human-only step (sign-in, security check) and wants the run to carry on. */
+export async function continueAfterHumanAction(
+  applicationId: string,
+): Promise<{ ok: boolean; state: ApplyState; message?: string }> {
+  await requireAccessForMutation();
+  const { applicationId: id } = parseActionInput(approveSubmitSchema, { applicationId });
+  const { scope } = await getAppContext();
+  const { continueAfterHuman } = await import("@/lib/apply/service");
+  const result = await continueAfterHuman(scope, id);
+  revalidatePath("/apply");
+  return result;
+}
+
 /** The user finished a handed-off application in the browser and submitted it. */
 export async function confirmSubmittedAction(
   applicationId: string,

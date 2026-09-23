@@ -32,6 +32,16 @@ import { resolveApplyDriver } from "@/lib/apply/driver";
 import { resolveResumePdfPath } from "@/lib/apply/resume-pdf";
 import { scanPage } from "@/lib/apply/detection";
 import {
+  BEFORE_SUBMIT_NOTE,
+  classifyHumanStep,
+  holdRun,
+  humanInstruction,
+  takeRun,
+  type HeldRun,
+} from "@/lib/apply/human-gate";
+import { pauseForCaptcha, takeControl, upsertSession } from "@/lib/apply/session-service";
+import { notifyDesktop } from "@/lib/notify/desktop";
+import {
   nextState as machineNextState,
   isTerminal,
   resumeAction,
@@ -386,36 +396,181 @@ export async function approveAndSubmit(
     opts?.driver ??
     resolveApplyDriver({ failSubmit: opts?.failSubmit, url: application.job.url ?? undefined });
 
-  let submitResult: SubmitResult;
+  let humanNote: string | null = null;
   try {
     await driver.open(application.job.url ?? "");
 
-    // Runtime detection re-check at submit time (plan §A): if the LIVE page now
-    // shows a CAPTCHA / login / Cloudflare wall, ABORT before submitting -
-    // automation never blasts through a challenge. (The simulated driver scans
-    // clean, so offline/test behavior is unchanged.)
+    // Runtime detection re-check at submit time (plan §A). Automation never
+    // gets past a human check by itself: a blocking one (login, security
+    // interstitial, 2FA) pauses the run with the window open for the user; a
+    // checkbox beside a fillable form is left for the user to tick at submit.
     const liveSignals = await driver.scan();
     const liveDetection = scanPage(liveSignals);
-    if (!liveDetection.clean) {
-      const abortedState = transition("SUBMITTING", "SUBMITTED_FAIL");
-      await db.application.update({
-        where: { id: application.id },
-        data: { applyState: abortedState },
-      });
-      await db.applicationEvent.create({
-        data: {
-          applicationId: application.id,
-          type: "submit_aborted",
-          detail: {
-            reason: "live detection scan not clean - captcha/login/cloudflare",
-            signals: liveDetection.signals,
-            driver: driver.name,
-          } as unknown as Prisma.InputJsonValue,
-        },
-      });
-      return { ok: false, state: abortedState };
+    const step = classifyHumanStep(liveSignals, liveDetection);
+    if (step === "blocking") {
+      return await pauseForHuman(scope, application.id, driver, fields, liveDetection);
     }
+    if (step === "before_submit") humanNote = BEFORE_SUBMIT_NOTE;
+  } catch (err) {
+    await closeQuietly(driver);
+    return failFromThrow(application.id, err);
+  }
 
+  return fillAndHandOff(application.id, driver, fields, humanNote);
+}
+
+async function closeQuietly(driver: ApplyDriver): Promise<void> {
+  try {
+    await driver.close?.();
+  } catch {
+    /* ignore teardown errors */
+  }
+}
+
+/** Unexpected throw: land deterministically in FAILED; never re-submit. */
+async function failFromThrow(
+  applicationId: string,
+  err: unknown,
+): Promise<{ ok: boolean; state: ApplyState }> {
+  const failedState = transition("SUBMITTING", "SUBMITTED_FAIL");
+  await db.application.update({ where: { id: applicationId }, data: { applyState: failedState } });
+  await db.applicationEvent.create({
+    data: {
+      applicationId,
+      type: "submit_failed",
+      detail: {
+        error: err instanceof Error ? err.message : String(err),
+        source: "driver_throw",
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+  return { ok: false, state: failedState };
+}
+
+/**
+ * Pause for a human: keep the browser window open on the blocking page, bring
+ * it to the front, tell the user, and wait for Continue (or expiry → HANDOFF).
+ */
+async function pauseForHuman(
+  scope: AppScope,
+  applicationId: string,
+  driver: ApplyDriver,
+  fields: PreparedField[],
+  detection: DetectionResult,
+): Promise<{ ok: boolean; state: ApplyState }> {
+  const pausedState = transition("SUBMITTING", "CAPTCHA_DETECTED");
+  const instruction = humanInstruction(detection);
+  await db.application.update({ where: { id: applicationId }, data: { applyState: pausedState } });
+  await pauseForCaptcha(scope, applicationId);
+  await db.applicationEvent.create({
+    data: {
+      applicationId,
+      type: "paused_for_human",
+      detail: { instruction, signals: detection.signals, driver: driver.name } as unknown as Prisma.InputJsonValue,
+    },
+  });
+  holdRun(applicationId, { scope, driver, fields, instruction }, expireHeldRun(applicationId));
+  await driver.focus?.().catch(() => undefined);
+  notifyDesktop("Job OS: human, please take over", instruction);
+  return { ok: true, state: pausedState };
+}
+
+/** No Continue within the limit: close the window and hand the application back. */
+function expireHeldRun(applicationId: string) {
+  return async (run: HeldRun): Promise<void> => {
+    await closeQuietly(run.driver);
+    const current = await db.application.findUnique({ where: { id: applicationId }, select: { applyState: true } });
+    if (current?.applyState !== "PAUSED") return;
+    const state = transition("PAUSED", "TAKE_CONTROL");
+    await db.application.update({ where: { id: applicationId }, data: { applyState: state } });
+    await takeControl(run.scope, applicationId);
+    await db.applicationEvent.create({
+      data: {
+        applicationId,
+        type: "pause_expired",
+        detail: { instruction: run.instruction } as unknown as Prisma.InputJsonValue,
+      },
+    });
+  };
+}
+
+/**
+ * The user did the human-only step and pressed Continue. Carry on in the same
+ * browser window. If the page still needs them, stay paused and say so. If the
+ * window is gone (expired or the app restarted), report it so the UI can offer
+ * to prepare the application again.
+ */
+export async function continueAfterHuman(
+  scope: AppScope,
+  applicationId: string,
+): Promise<{ ok: boolean; state: ApplyState; message?: string }> {
+  const application = await db.application.findFirst({
+    where: { id: applicationId, ...scopeWhere(scope) },
+    select: { id: true, applyState: true },
+  });
+  if (!application) return { ok: false, state: "FAILED", message: "Application not found." };
+  if (application.applyState !== "PAUSED") {
+    return { ok: false, state: application.applyState as ApplyState, message: "This application is not waiting for you." };
+  }
+  const run = takeRun(applicationId);
+  if (!run || run.scope.profileId !== scope.profileId) {
+    // The window is gone (expired or the app restarted): hand the application back.
+    const state = transition("PAUSED", "TAKE_CONTROL");
+    await db.application.update({ where: { id: applicationId }, data: { applyState: state } });
+    await takeControl(scope, applicationId);
+    await db.applicationEvent.create({
+      data: { applicationId, type: "pause_expired", detail: { reason: "window_gone" } as unknown as Prisma.InputJsonValue },
+    });
+    return {
+      ok: false,
+      state,
+      message: "The browser window for this application closed, so it is back with you. Open the job and finish it there.",
+    };
+  }
+
+  let signals: PageSignals;
+  try {
+    signals = await run.driver.scan();
+  } catch (err) {
+    await closeQuietly(run.driver);
+    const state = transition("PAUSED", "TAKE_CONTROL");
+    await db.application.update({ where: { id: applicationId }, data: { applyState: state } });
+    await db.applicationEvent.create({
+      data: {
+        applicationId,
+        type: "continue_failed",
+        detail: { error: err instanceof Error ? err.message : String(err) } as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return { ok: false, state, message: "The browser window was closed. The application is back with you." };
+  }
+  const detection = scanPage(signals);
+  const step = classifyHumanStep(signals, detection);
+  if (step === "blocking") {
+    const instruction = humanInstruction(detection);
+    holdRun(applicationId, { ...run, instruction }, expireHeldRun(applicationId));
+    await run.driver.focus?.().catch(() => undefined);
+    return { ok: false, state: "PAUSED", message: `Still waiting: ${instruction}` };
+  }
+
+  const state = transition("PAUSED", "CONTINUE_SUBMIT");
+  await db.application.update({ where: { id: applicationId }, data: { applyState: state } });
+  await upsertSession(scope, applicationId, { mode: "AI", captchaDetected: false, applyState: state });
+  await db.applicationEvent.create({
+    data: { applicationId, type: "human_step_done", detail: { driver: run.driver.name } as unknown as Prisma.InputJsonValue },
+  });
+  return fillAndHandOff(applicationId, run.driver, run.fields, step === "before_submit" ? BEFORE_SUBMIT_NOTE : null);
+}
+
+/** Fill → attach resume → driver result → state. Closes the window only when nothing is handed to the user. */
+async function fillAndHandOff(
+  applicationId: string,
+  driver: ApplyDriver,
+  fields: PreparedField[],
+  humanNote: string | null,
+): Promise<{ ok: boolean; state: ApplyState }> {
+  let submitResult: SubmitResult;
+  try {
     await driver.fill(fields);
 
     const resumePdf = await resolveResumePdfPath();
@@ -425,43 +580,22 @@ export async function approveAndSubmit(
 
     submitResult = await driver.submit();
   } catch (err) {
-    // Unexpected throw - land deterministically in FAILED; never re-submit
-    const failedState = transition("SUBMITTING", "SUBMITTED_FAIL");
-    await db.application.update({
-      where: { id: application.id },
-      data: { applyState: failedState },
-    });
-    await db.applicationEvent.create({
-      data: {
-        applicationId: application.id,
-        type: "submit_failed",
-        detail: {
-          error: err instanceof Error ? err.message : String(err),
-          source: "driver_throw",
-        } as unknown as Prisma.InputJsonValue,
-      },
-    });
-    return { ok: false, state: failedState };
-  } finally {
-    // Always tear the browser down (real driver closes the Chrome context);
-    // best-effort so it never masks the real submit outcome.
-    try {
-      await driver.close?.();
-    } catch {
-      /* ignore teardown errors */
-    }
+    await closeQuietly(driver);
+    return failFromThrow(applicationId, err);
   }
+  // Drivers that hand off leave their own window open (they decide in close()).
+  await closeQuietly(driver);
 
   if (submitResult.outcome === "submitted") {
     // SUBMITTING → SUBMITTED
     const submittedState = transition("SUBMITTING", "SUBMITTED_OK");
     await db.application.update({
-      where: { id: application.id },
+      where: { id: applicationId },
       data: { applyState: submittedState, status: "APPLIED", submittedAt: new Date() },
     });
     await db.applicationEvent.create({
       data: {
-        applicationId: application.id,
+        applicationId,
         type: "submitted",
         detail: {
           driver: driver.name,
@@ -477,33 +611,37 @@ export async function approveAndSubmit(
     // Filled but not sent: hand it to the user. Status stays unchanged; only
     // confirmSubmittedByUser() can mark it APPLIED.
     const handoffState = transition("SUBMITTING", "STOPPED_AT_REVIEW");
+    const unanswered = [...(submitResult.unanswered ?? []), ...(humanNote ? [humanNote] : [])];
     await db.application.update({
-      where: { id: application.id },
+      where: { id: applicationId },
       data: { applyState: handoffState },
     });
     await db.applicationEvent.create({
       data: {
-        applicationId: application.id,
+        applicationId,
         type: "stopped_at_review",
         detail: {
           driver: driver.name,
           detail: submitResult.detail ?? null,
-          unanswered: submitResult.unanswered ?? [],
+          unanswered,
+          humanBeforeSubmit: humanNote !== null,
         } as unknown as Prisma.InputJsonValue,
       },
     });
+    await driver.focus?.().catch(() => undefined);
+    notifyDesktop("Job OS: human, please take over", "Review the filled application and submit it.");
     return { ok: true, state: handoffState };
   }
 
   // SUBMITTING → FAILED (driver reported failure)
   const failedState = transition("SUBMITTING", "SUBMITTED_FAIL");
   await db.application.update({
-    where: { id: application.id },
+    where: { id: applicationId },
     data: { applyState: failedState },
   });
   await db.applicationEvent.create({
     data: {
-      applicationId: application.id,
+      applicationId,
       type: "submit_failed",
       detail: { detail: submitResult.detail ?? "unknown" } as unknown as Prisma.InputJsonValue,
     },

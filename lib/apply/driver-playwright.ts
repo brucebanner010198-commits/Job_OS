@@ -77,6 +77,8 @@ export interface RawPage {
   /** Whole-page HTML, lowercased. */
   htmlLower: string;
   hasPasswordField: boolean;
+  /** Visible, enabled text/select fields; tells a gated form from a blocked page. */
+  formFields?: number;
 }
 
 const CAPTCHA_MARKERS = [
@@ -117,7 +119,7 @@ export function buildSignals(raw: RawPage): PageSignals {
     /* invalid URL - host stays "" */
   }
   const { markers, hasCaptcha, hasLoginForm } = detectMarkers(raw);
-  return { url: raw.url, host, markers, hasLoginForm, hasCaptcha };
+  return { url: raw.url, host, markers, hasLoginForm, hasCaptcha, formFields: raw.formFields };
 }
 
 // --- the browser seam (real ⇄ fake) ------------------------------------------
@@ -137,6 +139,7 @@ export interface BrowserPage {
 export interface BrowserSession {
   page: BrowserPage;
   close(): Promise<void>;
+  focus?(): Promise<void>;
 }
 
 export type Launcher = (url: string) => Promise<BrowserSession>;
@@ -178,8 +181,22 @@ export async function launchSystemChrome(
 
 export const systemChromeLauncher: Launcher = async (url) => {
   const { page, close } = await launchSystemChrome(url);
-  return { page: playwrightBrowserPage(page), close };
+  return { page: playwrightBrowserPage(page), close, focus: () => page.bringToFront() };
 };
+
+/** Count visible, enabled fields a person could fill (hidden and file inputs excluded). */
+export async function countFormFields(page: Page): Promise<number> {
+  return page
+    .$$eval("input, textarea, select", (els) =>
+      els.filter((e) => {
+        const el = e as HTMLInputElement;
+        const t = (el.type || "").toLowerCase();
+        if (["hidden", "file", "submit", "button", "image", "reset"].includes(t) || el.disabled) return false;
+        return el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+      }).length,
+    )
+    .catch(() => 0);
+}
 
 /** Adapter: wrap a real Playwright Page into the BrowserPage seam. */
 export function playwrightBrowserPage(page: Page): BrowserPage {
@@ -195,7 +212,8 @@ export function playwrightBrowserPage(page: Page): BrowserPage {
       const htmlLower = (await page.content().catch(() => "")).toLowerCase();
       const hasPasswordField =
         (await page.$('input[type="password"]').catch(() => null)) !== null;
-      return { url: page.url(), scriptSrcs, htmlLower, hasPasswordField };
+      const formFields = await countFormFields(page);
+      return { url: page.url(), scriptSrcs, htmlLower, hasPasswordField, formFields };
     },
 
     async fillField(candidates, value) {
@@ -309,6 +327,10 @@ export function playwrightDriver(opts?: {
 
     async attachResume(pdfPath: string): Promise<boolean> {
       return requireSession().page.attachResumeFile(pdfPath);
+    },
+
+    async focus(): Promise<void> {
+      await session?.focus?.();
     },
 
     async submit(): Promise<SubmitResult> {

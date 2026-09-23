@@ -127,6 +127,8 @@ export interface PageSignals {
   markers: string[];
   hasLoginForm: boolean;
   hasCaptcha: boolean;
+  /** Visible, enabled form fields on the page (undefined when not measured). */
+  formFields?: number;
 }
 
 export interface DetectionResult {
@@ -161,7 +163,8 @@ export type ApplyEvent =
   | "RESET"
   | "CAPTCHA_DETECTED"
   | "TAKE_CONTROL"
-  | "RESUME_AI";
+  | "RESUME_AI"
+  | "CONTINUE_SUBMIT";
 
 /**
  * The legal transition table (plan §C). The critical invariant: SUBMITTING is
@@ -184,7 +187,9 @@ export const APPLY_TRANSITIONS: Readonly<
     // user finishes it in the browser.
     STOPPED_AT_REVIEW: "HANDOFF",
   },
-  PAUSED: { RESUME_AI: "PREPARING", TAKE_CONTROL: "HANDOFF" },
+  // CONTINUE_SUBMIT: the user did the human-only step in the same browser window
+  // and the run carries on there. RESUME_AI re-plans from scratch.
+  PAUSED: { RESUME_AI: "PREPARING", TAKE_CONTROL: "HANDOFF", CONTINUE_SUBMIT: "SUBMITTING" },
   // Only the user can say they submitted; the app never infers it.
   HANDOFF: { RESUME_AI: "PREPARING", USER_CONFIRMED_SUBMIT: "SUBMITTED" },
   SUBMITTED: {},
@@ -237,6 +242,8 @@ export interface ApplyDriver {
   attachResume?(pdfPath: string): Promise<boolean>;
   /** Submit. Concurrency must be 1; callers gate this behind human approval. */
   submit(): Promise<SubmitResult>;
+  /** Bring the browser window to the front when the user must act in it. */
+  focus?(): Promise<void>;
   /** Optional teardown (the real Playwright adapter closes the browser context).
    *  The service calls this in a finally so a real browser is never leaked. */
   close?(): Promise<void>;

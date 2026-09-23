@@ -75,7 +75,8 @@
     "jobos": "bash scripts/jobos.sh start",
     "test:apply-handoff": "tsx scripts/test-apply-handoff.ts",
     "test:apply-greenhouse": "tsx scripts/test-apply-greenhouse.ts",
-    "test:apply-jev": "tsx scripts/test-apply-jev.ts"
+    "test:apply-jev": "tsx scripts/test-apply-jev.ts",
+    "test:apply-human": "tsx scripts/test-apply-human.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

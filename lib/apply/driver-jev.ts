@@ -181,6 +181,11 @@ export function jevDriver(opts?: {
       });
     },
 
+    async focus() {
+      if (fallback) return fallback.focus?.();
+      await session?.page.bringToFront();
+    },
+
     async attachResume(pdfPath: string) {
       if (fallback) return fallback.attachResume?.(pdfPath) ?? false;
       // Jev can't upload files; attach to the page's file input directly.

@@ -15,7 +15,7 @@
  */
 import type { Page } from "playwright-core";
 import type { ApplyDriver, PageSignals, PreparedField, SubmitResult } from "@/lib/apply/types";
-import { buildSignals, launchSystemChrome, type RawPage } from "@/lib/apply/driver-playwright";
+import { buildSignals, countFormFields, launchSystemChrome, type RawPage } from "@/lib/apply/driver-playwright";
 import {
   fetchGreenhouseForm,
   parseGreenhouseJobUrl,
@@ -53,6 +53,7 @@ export interface GreenhousePage {
 export interface GreenhouseSession {
   page: GreenhousePage;
   close(): Promise<void>;
+  focus?(): Promise<void>;
 }
 
 export type GreenhouseLauncher = (url: string) => Promise<GreenhouseSession>;
@@ -68,7 +69,7 @@ export function playwrightGreenhousePage(page: Page): GreenhousePage {
         .catch(() => [] as string[]);
       const htmlLower = (await page.content().catch(() => "")).toLowerCase();
       const hasPasswordField = (await page.$('input[type="password"]').catch(() => null)) !== null;
-      return { url: page.url(), scriptSrcs, htmlLower, hasPasswordField };
+      return { url: page.url(), scriptSrcs, htmlLower, hasPasswordField, formFields: await countFormFields(page) };
     },
 
     async fillText(id, value) {
@@ -114,7 +115,7 @@ const realLauncher: GreenhouseLauncher = async (url) => {
   // needs to see to know it is invisible) only appears late.
   await page.waitForSelector("#first_name", { timeout: 20_000 }).catch(() => undefined);
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => undefined);
-  return { page: playwrightGreenhousePage(page), close };
+  return { page: playwrightGreenhousePage(page), close, focus: () => page.bringToFront() };
 };
 
 // --- the driver --------------------------------------------------------------
@@ -171,6 +172,10 @@ export function greenhouseDriver(opts?: {
           a.kind === "text" ? await page.fillText(a.id, a.value) : await page.chooseOption(a.id, a.option);
         if (!ok) missed.push(a.id);
       }
+    },
+
+    async focus() {
+      await session?.focus?.();
     },
 
     async attachResume(pdfPath: string) {

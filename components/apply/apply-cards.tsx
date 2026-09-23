@@ -359,7 +359,8 @@ export function ApplicationCard({
 
           {localState === "PAUSED" && (
             <div className="mb-3 rounded-lg border border-[var(--warning)]/40 bg-[var(--warning)]/8 p-3 text-xs text-[var(--warning)]">
-              CAPTCHA detected - automation paused. Solve it in the browser, then click Resume AI.
+              A step needs you in the browser window (sign-in or a security check). Do it there,
+              then press Continue in the &ldquo;Human, please take over&rdquo; pop-up.
             </div>
           )}
 

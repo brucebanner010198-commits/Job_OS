@@ -10,6 +10,7 @@ import { ProfileSwitcher } from "@/components/profile-switcher";
 import { PipelineRail } from "@/components/pipeline/pipeline-rail";
 import { AutopilotBanner } from "@/components/pipeline/autopilot-banner";
 import { SettingsToolsPanel } from "@/components/settings-tools-panel";
+import { HumanTakeover } from "@/components/apply/human-takeover";
 import type { AutopilotBannerData } from "@/lib/autopilot/banner";
 import type { ProfileSummary } from "@/app/actions/profiles";
 import type { PipelineStageId } from "@/lib/pipeline/stages";
@@ -104,6 +105,7 @@ export function AppShell({
         )}
         <AutopilotBanner data={autopilotBanner ?? null} />
         {children}
+        {!dbError && <HumanTakeover />}
       </div>
     </div>
   );
