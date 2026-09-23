@@ -42,7 +42,10 @@ export function resolveApplyDriver(opts?: { failSubmit?: boolean }): ApplyDriver
     return simulatedDriver({ failSubmit: opts?.failSubmit ?? false });
   }
   if (kind === "browser-use" || kind === "browser-use(dry-run)") {
-    return browserUseDriver({ dryRun: kind === "browser-use(dry-run)" });
+    return browserUseDriver({
+      dryRun: kind === "browser-use(dry-run)",
+      headless: process.env.APPLY_HEADLESS !== "0",
+    });
   }
   return playwrightDriver({ dryRun: kind === "playwright(dry-run)" });
 }

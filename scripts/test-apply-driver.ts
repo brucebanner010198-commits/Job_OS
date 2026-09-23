@@ -148,7 +148,7 @@ console.log("\napply-driver - orchestration:");
   check("attachResume() uploads when seam present", attached === true && calls.attached);
 
   const r = await d.submit();
-  check("submit() clicks once and returns ok", r.ok && calls.clicked === 1);
+  check("submit() clicks once and reports submitted", r.outcome === "submitted" && calls.clicked === 1);
 
   let threwTwice = false;
   try {
@@ -170,7 +170,7 @@ console.log("\napply-driver - dry run never submits:");
   await d.scan();
   await d.fill([field({ value: "x", source: "answers" })]);
   const r = await d.submit();
-  check("dry-run reports ok but NEVER clicks", r.ok && calls.clicked === 0 && /not submitted/i.test(r.detail ?? ""));
+  check("dry-run stops at review and NEVER clicks", r.outcome === "stopped_at_review" && calls.clicked === 0);
   check("dry-run still fills the form", calls.filled.length === 1);
 }
 

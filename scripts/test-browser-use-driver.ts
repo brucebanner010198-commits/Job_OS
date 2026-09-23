@@ -55,7 +55,8 @@ async function run() {
 
   // 4. Concurrency invariant
   let doubleSubmitCaught = false;
-  const d = browserUseDriver();
+  // A stand-in interpreter that exits at once: this checks the guard, not the agent.
+  const d = browserUseDriver({ pythonPath: "/usr/bin/false" });
   await d.open("https://jobs.example.com/apply/123");
   // Simulate double submit guard
   try {

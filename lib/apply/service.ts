@@ -25,6 +25,7 @@
  */
 
 import { db } from "@/lib/db";
+import { JobOSError } from "@/lib/errors/job-os-error";
 import { Prisma } from "@prisma/client";
 import { buildApplyPlan } from "@/lib/apply/engine";
 import { resolveApplyDriver } from "@/lib/apply/driver";
@@ -50,6 +51,7 @@ import type {
   PageSignals,
   ApplyPlan,
   ApplyDriver,
+  SubmitResult,
 } from "@/lib/apply/types";
 
 // --- Serializable view --------------------------------------------------------
@@ -382,7 +384,7 @@ export async function approveAndSubmit(
   // AND local); callers may inject one explicitly via opts.driver.
   const driver = opts?.driver ?? resolveApplyDriver({ failSubmit: opts?.failSubmit });
 
-  let submitResult: { ok: boolean; detail?: string };
+  let submitResult: SubmitResult;
   try {
     await driver.open(application.job.url ?? "");
 
@@ -448,7 +450,7 @@ export async function approveAndSubmit(
     }
   }
 
-  if (submitResult.ok) {
+  if (submitResult.outcome === "submitted") {
     // SUBMITTING → SUBMITTED
     const submittedState = transition("SUBMITTING", "SUBMITTED_OK");
     await db.application.update({
@@ -459,26 +461,89 @@ export async function approveAndSubmit(
       data: {
         applicationId: application.id,
         type: "submitted",
-        detail: {} as unknown as Prisma.InputJsonValue,
+        detail: {
+          driver: driver.name,
+          detail: submitResult.detail ?? null,
+          confirmation: submitResult.confirmation ?? null,
+        } as unknown as Prisma.InputJsonValue,
       },
     });
     return { ok: true, state: submittedState };
-  } else {
-    // SUBMITTING → FAILED (driver reported failure)
-    const failedState = transition("SUBMITTING", "SUBMITTED_FAIL");
+  }
+
+  if (submitResult.outcome === "stopped_at_review") {
+    // Filled but not sent: hand it to the user. Status stays unchanged; only
+    // confirmSubmittedByUser() can mark it APPLIED.
+    const handoffState = transition("SUBMITTING", "STOPPED_AT_REVIEW");
     await db.application.update({
       where: { id: application.id },
-      data: { applyState: failedState },
+      data: { applyState: handoffState },
     });
     await db.applicationEvent.create({
       data: {
         applicationId: application.id,
-        type: "submit_failed",
-        detail: { detail: submitResult.detail ?? "unknown" } as unknown as Prisma.InputJsonValue,
+        type: "stopped_at_review",
+        detail: {
+          driver: driver.name,
+          detail: submitResult.detail ?? null,
+          unanswered: submitResult.unanswered ?? [],
+        } as unknown as Prisma.InputJsonValue,
       },
     });
-    return { ok: false, state: failedState };
+    return { ok: true, state: handoffState };
   }
+
+  // SUBMITTING → FAILED (driver reported failure)
+  const failedState = transition("SUBMITTING", "SUBMITTED_FAIL");
+  await db.application.update({
+    where: { id: application.id },
+    data: { applyState: failedState },
+  });
+  await db.applicationEvent.create({
+    data: {
+      applicationId: application.id,
+      type: "submit_failed",
+      detail: { detail: submitResult.detail ?? "unknown" } as unknown as Prisma.InputJsonValue,
+    },
+  });
+  return { ok: false, state: failedState };
+}
+
+/**
+ * The user says they finished and submitted a handed-off application
+ * themselves. This is the only path from HANDOFF to APPLIED.
+ */
+export async function confirmSubmittedByUser(
+  scope: AppScope,
+  applicationId: string,
+): Promise<{ ok: boolean; state: ApplyState }> {
+  const application = await db.application.findFirst({
+    where: { id: applicationId, ...scopeWhere(scope) },
+  });
+  if (!application) {
+    throw JobOSError.notFound({
+      domain: "apply",
+      reason: "APPLICATION_NOT_FOUND",
+      location: "lib/apply/service.ts:confirmSubmittedByUser",
+      message: "Application not found.",
+    });
+  }
+  const current = application.applyState as ApplyState;
+  if (current !== "HANDOFF") return { ok: false, state: current };
+
+  const state = transition("HANDOFF", "USER_CONFIRMED_SUBMIT");
+  await db.application.update({
+    where: { id: application.id },
+    data: { applyState: state, status: "APPLIED", submittedAt: new Date() },
+  });
+  await db.applicationEvent.create({
+    data: {
+      applicationId: application.id,
+      type: "submitted",
+      detail: { by: "user" } as unknown as Prisma.InputJsonValue,
+    },
+  });
+  return { ok: true, state };
 }
 
 // --- listApplications ---------------------------------------------------------

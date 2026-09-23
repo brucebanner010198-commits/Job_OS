@@ -333,7 +333,11 @@ async function chatOpenAI(opts: ChatOptions, apiKey: string): Promise<ChatResult
 }
 
 async function chatGemini(opts: ChatOptions, apiKey: string): Promise<ChatResult> {
-  const model = opts.model ?? (opts.tier === "strong" ? "gemini-2.5-pro" : "gemini-2.5-flash");
+  // 2.5 models are restricted for new Google projects; 3.x Flash is the current stable line.
+  const model =
+    opts.model && !opts.model.includes("/")
+      ? opts.model
+      : (await getSecret("GEMINI_MODEL")) || (opts.tier === "cheap" ? "gemini-3.5-flash-lite" : "gemini-3.8-flash");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   // Format messages into Google Generative AI shape

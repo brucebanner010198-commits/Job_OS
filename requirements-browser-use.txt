@@ -1,6 +1,4 @@
-browser-use>=0.13.0
-playwright>=1.49.0
-langchain-openai>=0.3.0
-pydantic>=2.10.0
-python-dotenv>=1.0.0
-pillow>=11.0.0
+# Pinned to the versions verified with scripts/apply_with_browser_use.py.
+browser-use==0.13.10
+ollama==0.6.1
+google-genai==1.65.0

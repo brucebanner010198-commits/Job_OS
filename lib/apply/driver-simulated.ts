@@ -14,7 +14,7 @@
  *   adapter is the default for offline use, testing, and the CI gate.
  */
 
-import type { ApplyDriver, PageSignals, PreparedField } from "@/lib/apply/types";
+import type { ApplyDriver, PageSignals, PreparedField, SubmitResult } from "@/lib/apply/types";
 
 export function simulatedDriver(config?: {
   /** Override the PageSignals returned by scan(). Defaults to a clean page. */
@@ -67,7 +67,7 @@ export function simulatedDriver(config?: {
      * driver instance. This proves the no-double-submit guarantee - callers
      * must never call submit() on an already-submitted driver.
      */
-    async submit(): Promise<{ ok: boolean; detail?: string }> {
+    async submit(): Promise<SubmitResult> {
       if (_submitted) {
         throw new Error(
           "simulatedDriver: submit() called twice - concurrency=1 invariant " +
@@ -76,11 +76,11 @@ export function simulatedDriver(config?: {
         );
       }
       _submitted = true;
-      const ok = !(config?.failSubmit ?? false);
-      return {
-        ok,
-        detail: ok ? undefined : "simulated submit failure (failSubmit: true)",
-      };
+      if (config?.failSubmit) {
+        return { outcome: "failed", detail: "simulated submit failure (failSubmit: true)" };
+      }
+      // A simulation sends nothing, so it can never count as an application.
+      return { outcome: "stopped_at_review", detail: "simulated: nothing was sent to the employer" };
     },
 
     // No browser to tear down - a no-op so it satisfies the same ApplyDriver

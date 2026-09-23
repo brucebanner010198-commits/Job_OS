@@ -2,9 +2,11 @@
 """
 scripts/qa_with_browser_use.py
 
-Automated web UI test runner using Browser Use.
-Autonomously exercises Job OS routes, captures step screenshots,
-and produces a structured verification report.
+Visual smoke test of the running Job OS UI with a Browser Use agent. Each page
+check is reported separately, and the run passes only if every check passes.
+Runs on the local model by default, so no API key is needed.
+
+Usage: npm run test:browser-use [-- --base-url http://127.0.0.1:3000 --no-headless]
 """
 
 import argparse
@@ -14,151 +16,122 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
-# Automatically restart using the isolated virtual environment if it exists
 project_root = Path(__file__).resolve().parent.parent
 venv_python = project_root / ".venv-browser-use" / "bin" / "python"
 if venv_python.exists() and Path(sys.executable).resolve() != venv_python.resolve():
     os.execl(str(venv_python), str(venv_python), *sys.argv)
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from browser_use_llm import add_llm_args, agent_speed_kwargs, build_llm, real_errors  # noqa: E402
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+# (path, what must be visible). Keep these in step with the app's screens.
+CHECKS = [
+    ("/", "the dashboard renders with navigation and no error message"),
+    ("/import", "a resume upload area renders"),
+    ("/master-resume", "the master resume page renders (entries or an empty state)"),
+    ("/jobs", "the job queue renders (job cards or an empty state)"),
+    ("/api/health", "a JSON response is shown"),
+]
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Automated web UI test runner with Browser Use"
-    )
-    parser.add_argument(
-        "--base-url",
-        default=os.getenv("APP_URL", "http://localhost:3000"),
-        help="Base URL of Job OS web application",
-    )
-    parser.add_argument(
-        "--model",
-        default=os.getenv("MODEL_STANDARD", "google/gemini-2.5-flash"),
-        help="OpenRouter model slug to use for visual verification",
-    )
-    parser.add_argument(
-        "--headless",
-        action="store_true",
-        default=True,
-        help="Run browser in headless mode",
-    )
-    parser.add_argument(
-        "--output-dir",
-        default=".logs/browser-use-qa",
-        help="Directory to save test reports and screenshots",
-    )
+    parser = argparse.ArgumentParser(description="Visual UI smoke test with Browser Use")
+    parser.add_argument("--base-url", default=os.getenv("APP_URL", "http://127.0.0.1:3000"))
+    parser.add_argument("--headless", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--output-dir", default=".logs/browser-use-qa")
+    add_llm_args(parser)
     return parser.parse_args()
 
 
-async def run_qa_suite(args):
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        print(json.dumps({
-            "ok": False,
-            "error": "OPENROUTER_API_KEY is not configured in the environment.",
-            "tests": []
-        }, indent=2))
-        return False
+def write_report(out_dir, report):
+    (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(json.dumps(report, indent=2))
+    return report["ok"]
 
-    try:
-        from browser_use import Agent, ChatOpenRouter
-        from browser_use.browser.profile import BrowserProfile
-    except ImportError as exc:
-        print(json.dumps({
-            "ok": False,
-            "error": f"Browser Use dependencies missing: {exc}",
-            "tests": []
-        }, indent=2))
-        return False
 
+async def run(args):
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    started = time.time()
+
+    llm, llm_error = build_llm(args)
+    if llm_error:
+        return write_report(out_dir, {"ok": False, "summary": llm_error, "checks": []})
+
+    try:
+        from browser_use import Agent
+        from browser_use.browser.profile import BrowserProfile
+        from pydantic import BaseModel
+    except ImportError as exc:
+        return write_report(out_dir, {"ok": False, "summary": f"Dependencies missing: {exc}", "checks": []})
+
+    class CheckResult(BaseModel):
+        path: str
+        passed: bool
+        observed: str
+        error_text: Optional[str] = None
+
+    class QaReport(BaseModel):
+        checks: list[CheckResult]
+
+    base = args.base_url.rstrip("/")
+    steps = "\n".join(f"{i}. Open {base}{path} and check that {expect}." for i, (path, expect) in enumerate(CHECKS, 1))
+    task = f"""You are testing a web app. Do each step in order:
+{steps}
+
+For every step record path, passed, a one-sentence description of what you saw, and any error text on the page.
+Report a step as failed if the page shows an error, a blank screen or does not match."""
 
     gif_path = str(out_dir / "qa_actions.gif")
-    base_url = args.base_url.rstrip("/")
-
-    task = f"""
-You are a QA automation engineer verifying the Job OS web application running at {base_url}.
-Perform the following verification steps in sequence:
-
-1. Navigate to {base_url}/import. Verify that the resume upload area and ATS ingestion UI render properly without crashing.
-2. Navigate to {base_url}/master-resume. Verify that the candidate profile, contact information, and metric density sections appear on the page.
-3. Navigate to {base_url}/jobs. Verify that the ranked job queue renders with job cards and match score badges.
-4. Navigate to {base_url}/track. Verify that the Kanban application stages (Saved, Applied, Interviewing, Offer) render.
-5. Navigate to {base_url}/api/diagnostics. Verify that the API returns a JSON response indicating the system is healthy.
-
-After completing these checks, declare 'All verification steps completed successfully.' or report any specific failures encountered.
-"""
-
-    llm = ChatOpenRouter(
-        model=args.model,
-        api_key=api_key,
-        temperature=0.0,
-    )
-
-    browser_profile = BrowserProfile(
-        headless=args.headless,
-    )
-
     agent = Agent(
         task=task,
         llm=llm,
-        browser_profile=browser_profile,
-        generate_gif=gif_path,
+        browser_profile=BrowserProfile(headless=args.headless),
         use_vision=True,
+        generate_gif=gif_path,
+        output_model_schema=QaReport,
+        **agent_speed_kwargs(args),
     )
 
-    start_time = time.time()
     try:
         history = await agent.run(max_steps=25)
-        duration = round(time.time() - start_time, 2)
-        final_result = history.final_result() or "QA completed."
-
-        steps_count = history.number_of_steps() if hasattr(history, "number_of_steps") else len(history)
-
-        has_errors = bool(history.errors()) or not history.is_successful() if hasattr(history, "is_successful") else bool(history.errors())
-
-        report = {
-            "ok": not has_errors,
-            "durationSeconds": duration,
-            "actions": history.action_names(),
-            "steps": steps_count,
-            "errors": history.errors(),
-            "summary": final_result,
-            "gifPath": gif_path if os.path.exists(gif_path) else None,
-        }
-
-        report_file = out_dir / "report.json"
-        with open(report_file, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
-
-        print(json.dumps(report, indent=2))
-        return report["ok"]
-    except Exception as err:
-        report = {
+    except Exception as err:  # the agent library raises many types
+        return write_report(out_dir, {
             "ok": False,
-            "durationSeconds": round(time.time() - start_time, 2),
-            "error": str(err),
-            "summary": "QA execution failed due to an uncaught exception.",
-        }
-        report_file = out_dir / "report.json"
-        with open(report_file, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
-        print(json.dumps(report, indent=2))
-        return False
+            "durationSeconds": round(time.time() - started, 2),
+            "summary": f"Agent crashed: {err}",
+            "checks": [],
+        })
+
+    report = history.structured_output
+    checks = [c.model_dump() for c in report.checks] if report else []
+    failed = [c for c in checks if not c["passed"]]
+    ok = bool(checks) and len(checks) == len(CHECKS) and not failed
+    if not checks:
+        summary = "The agent returned no check results."
+    elif failed:
+        summary = f"{len(failed)} of {len(checks)} checks failed."
+    elif len(checks) != len(CHECKS):
+        summary = f"Only {len(checks)} of {len(CHECKS)} checks were reported."
+    else:
+        summary = f"All {len(checks)} checks passed."
+
+    return write_report(out_dir, {
+        "ok": ok,
+        "summary": summary,
+        "provider": args.provider,
+        "durationSeconds": round(time.time() - started, 2),
+        "steps": history.number_of_steps(),
+        "checks": checks,
+        "agentErrors": real_errors(history),
+        "gifPath": gif_path if os.path.exists(gif_path) else None,
+    })
 
 
 def main():
-    args = parse_args()
-    success = asyncio.run(run_qa_suite(args))
-    sys.exit(0 if success else 1)
+    sys.exit(0 if asyncio.run(run(parse_args())) else 1)
 
 
 if __name__ == "__main__":

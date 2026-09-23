@@ -23,7 +23,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Page } from "playwright-core";
-import type { ApplyDriver, PageSignals, PreparedField } from "@/lib/apply/types";
+import type { ApplyDriver, PageSignals, PreparedField, SubmitResult } from "@/lib/apply/types";
 import { isPublicHttpUrl } from "@/lib/security/url";
 
 // --- pure: field → selector strategy -----------------------------------------
@@ -305,7 +305,7 @@ export function playwrightDriver(opts?: {
       return requireSession().page.attachResumeFile(pdfPath);
     },
 
-    async submit(): Promise<{ ok: boolean; detail?: string }> {
+    async submit(): Promise<SubmitResult> {
       // CONCURRENCY=1: a second submit() on the same driver is a no-double-submit
       // violation and throws (mirrors the simulated adapter / plan §8c, §C).
       if (submitted) {
@@ -318,13 +318,13 @@ export function playwrightDriver(opts?: {
       const { page } = requireSession();
 
       if (dryRun) {
-        return { ok: true, detail: "dry run - form filled, NOT submitted" };
+        return { outcome: "stopped_at_review", detail: "dry run: form filled, not submitted" };
       }
       const clicked = await page.clickSubmit();
       if (!clicked) {
-        return { ok: false, detail: "no submit control found on the page" };
+        return { outcome: "failed", detail: "no submit control found on the page" };
       }
-      return { ok: true };
+      return { outcome: "submitted", detail: "submit clicked; confirmation page not verified" };
     },
 
     async close(): Promise<void> {

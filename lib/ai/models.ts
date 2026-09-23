@@ -32,6 +32,9 @@ export const TASK_TIER = {
   provenanceAudit: "standard",
   polishProfileBullets: "standard",
   onboardingCoaching: "standard",
+  // Browser agent that fills application forms (vision + multi-step).
+  applyAgent: "strong",
+  journalExtract: "standard",
 } as const satisfies Record<string, ModelTier>;
 
 export type TaskName = keyof typeof TASK_TIER;

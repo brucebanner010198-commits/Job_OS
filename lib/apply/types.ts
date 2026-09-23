@@ -151,6 +151,8 @@ export type ApplyState =
 
 /** Events that drive transitions. */
 export type ApplyEvent =
+  | "STOPPED_AT_REVIEW"
+  | "USER_CONFIRMED_SUBMIT"
   | "PREPARE"
   | "PREPARED"
   | "APPROVE"
@@ -178,9 +180,13 @@ export const APPLY_TRANSITIONS: Readonly<
     SUBMITTED_OK: "SUBMITTED",
     SUBMITTED_FAIL: "FAILED",
     CAPTCHA_DETECTED: "PAUSED",
+    // The form was filled but nothing was sent (dry run or simulation): the
+    // user finishes it in the browser.
+    STOPPED_AT_REVIEW: "HANDOFF",
   },
   PAUSED: { RESUME_AI: "PREPARING", TAKE_CONTROL: "HANDOFF" },
-  HANDOFF: { RESUME_AI: "PREPARING" },
+  // Only the user can say they submitted; the app never infers it.
+  HANDOFF: { RESUME_AI: "PREPARING", USER_CONFIRMED_SUBMIT: "SUBMITTED" },
   SUBMITTED: {},
   FAILED: { RESET: "QUEUED" },
 };
@@ -204,6 +210,23 @@ export interface ApplyPlan {
  * real Playwright adapter is a drop-in behind this same interface and stays
  * LOCAL even after any future cloud migration (it needs your real session).
  */
+/**
+ * What a driver actually did. "submitted" means the submit control was used
+ * on a live page; "stopped_at_review" means the form was filled (or simulated)
+ * and nothing reached the employer. Only "submitted" may mark an application
+ * APPLIED.
+ */
+export type SubmitOutcome = "submitted" | "stopped_at_review" | "failed";
+
+export interface SubmitResult {
+  outcome: SubmitOutcome;
+  detail?: string;
+  /** Confirmation text seen on the page after submitting, when detected. */
+  confirmation?: string;
+  /** Questions the driver could not answer from confirmed data. */
+  unanswered?: string[];
+}
+
 export interface ApplyDriver {
   name: string;
   open(url: string): Promise<void>;
@@ -213,7 +236,7 @@ export interface ApplyDriver {
   /** Attach a tailored resume PDF when the page exposes a file input. */
   attachResume?(pdfPath: string): Promise<boolean>;
   /** Submit. Concurrency must be 1; callers gate this behind human approval. */
-  submit(): Promise<{ ok: boolean; detail?: string }>;
+  submit(): Promise<SubmitResult>;
   /** Optional teardown (the real Playwright adapter closes the browser context).
    *  The service calls this in a finally so a real browser is never leaked. */
   close?(): Promise<void>;
