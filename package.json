@@ -69,7 +69,8 @@
     "test:job-training": "tsx scripts/test-job-training.ts",
     "test:coaching-session": "tsx scripts/test-coaching-session.ts",
     "test:ux": "tsx scripts/test-ux-improvements.ts",
-    "test:ai-routing": "tsx scripts/test-ai-routing.ts"
+    "test:ai-routing": "tsx scripts/test-ai-routing.ts",
+    "test:voice-local": "tsx scripts/test-voice-local.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

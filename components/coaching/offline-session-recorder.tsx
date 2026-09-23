@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { transcribeAudioAction } from "@/app/actions/voice";
 
 export interface OfflineSessionRecorderProps {
   onTranscriptChange: (text: string) => void;
@@ -31,36 +32,6 @@ function formatSeconds(totalSeconds: number): string {
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
-interface SpeechRecognitionEventLike {
-  readonly results: {
-    readonly length: number;
-    [index: number]: {
-      [index: number]: { readonly transcript: string };
-    };
-  };
-}
-
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
-}
-
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
-
-function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as {
-    SpeechRecognition?: SpeechRecognitionCtor;
-    webkitSpeechRecognition?: SpeechRecognitionCtor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
 export function OfflineSessionRecorder({
   onTranscriptChange,
   initialTranscript = "",
@@ -72,7 +43,7 @@ export function OfflineSessionRecorder({
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [transcript, setTranscript] = useState(initialTranscript);
-  const speechSupported = typeof window !== "undefined" && Boolean(getSpeechRecognitionCtor());
+  const [transcribing, setTranscribing] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -81,7 +52,6 @@ export function OfflineSessionRecorder({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const handleTranscriptUpdate = useCallback(
     (newText: string) => {
@@ -89,6 +59,24 @@ export function OfflineSessionRecorder({
       onTranscriptChange(newText);
     },
     [onTranscriptChange],
+  );
+
+  /** Transcribes the finished recording (or an uploaded file) on this computer. */
+  const transcribe = useCallback(
+    async (audio: Blob) => {
+      setTranscribing(true);
+      try {
+        const form = new FormData();
+        form.set("audio", audio);
+        const { text } = await transcribeAudioAction(form);
+        if (text) handleTranscriptUpdate(transcript ? `${transcript}\n${text}` : text);
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : "Transcription failed.");
+      } finally {
+        setTranscribing(false);
+      }
+    },
+    [handleTranscriptUpdate, transcript],
   );
 
   // Clean up timer and media streams on unmount
@@ -171,8 +159,8 @@ export function OfflineSessionRecorder({
 
       recorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
+        setAudioUrl(URL.createObjectURL(blob));
+        void transcribe(blob);
       };
 
       recorder.start(250); // Collect in 250ms chunks
@@ -187,33 +175,6 @@ export function OfflineSessionRecorder({
       // Start volume level visualization
       startAudioMeter(stream);
 
-      // Start live speech transcription if supported
-      const Ctor = getSpeechRecognitionCtor();
-      if (Ctor) {
-        try {
-          const rec = new Ctor();
-          recognitionRef.current = rec;
-          rec.continuous = true;
-          rec.interimResults = true;
-          rec.lang = "en-US";
-
-          rec.onresult = (event: SpeechRecognitionEventLike) => {
-            let fullText = "";
-            for (let i = 0; i < event.results.length; i++) {
-              fullText += event.results[i][0].transcript + " ";
-            }
-            handleTranscriptUpdate(fullText.trim());
-          };
-
-          rec.onerror = () => {
-            // Live speech error fallback
-          };
-
-          rec.start();
-        } catch {
-          // Ignore recognition start errors
-        }
-      }
     } catch (err) {
       setErrorMessage(
         err instanceof Error
@@ -228,11 +189,6 @@ export function OfflineSessionRecorder({
       mediaRecorderRef.current.pause();
       setState("paused");
       if (timerRef.current) clearInterval(timerRef.current);
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
-      }
     }
   };
 
@@ -243,11 +199,6 @@ export function OfflineSessionRecorder({
       timerRef.current = setInterval(() => {
         setDuration((prev) => prev + 1);
       }, 1000);
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch {}
-      }
     }
   };
 
@@ -263,11 +214,6 @@ export function OfflineSessionRecorder({
       }
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close().catch(() => {});
-      }
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
       }
       setVolumeLevel(0);
     }
@@ -285,10 +231,10 @@ export function OfflineSessionRecorder({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    setAudioUrl(url);
+    setAudioUrl(URL.createObjectURL(file));
     setState("stopped");
     setErrorMessage(null);
+    void transcribe(file);
   };
 
   return (
@@ -428,8 +374,8 @@ export function OfflineSessionRecorder({
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Captured Transcript (Spoken or Typed)</span>
-          {speechSupported && state === "recording" && (
-            <span className="text-accent text-[11px] font-medium">Live speech streaming...</span>
+          {transcribing && (
+            <span className="text-accent text-[11px] font-medium">Transcribing on this computer…</span>
           )}
         </div>
         <textarea
