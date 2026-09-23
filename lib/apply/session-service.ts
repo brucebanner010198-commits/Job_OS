@@ -41,8 +41,9 @@ export async function getSession(
   scope: AppScope,
   applicationId: string,
 ): Promise<ApplySession | undefined> {
+  // ApplySession carries profileId only (no userId column).
   const row = await db.applySession.findFirst({
-    where: { applicationId, ...scopeWhere(scope) },
+    where: { applicationId, profileId: scope.profileId },
   });
   return row ? toDomain(row) : undefined;
 }
@@ -61,7 +62,7 @@ export async function upsertSession(
   }
 
   const existing = await db.applySession.findFirst({
-    where: { applicationId, ...scopeWhere(scope) },
+    where: { applicationId, profileId: scope.profileId },
   });
 
   const row = await db.applySession.upsert({
@@ -127,7 +128,7 @@ export async function clearSession(
   applicationId: string,
 ): Promise<void> {
   await db.applySession.deleteMany({
-    where: { applicationId, ...scopeWhere(scope) },
+    where: { applicationId, profileId: scope.profileId },
   });
 }
 
