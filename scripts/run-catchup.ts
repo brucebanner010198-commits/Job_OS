@@ -16,6 +16,7 @@ import { resolveScope } from "@/lib/profiles/scope";
 import { loadWatermarks, recordRun } from "@/lib/scheduler/service";
 import { jobsFromWatermarks, planRun } from "@/lib/scheduler/plan";
 import { runScheduledJob } from "@/lib/scheduler/run-job";
+import { flushLedger } from "@/lib/ai/ledger";
 
 async function main(): Promise<void> {
   const user = await getPrimaryUser();
@@ -54,6 +55,7 @@ async function main(): Promise<void> {
 }
 
 main()
+  .then(flushLedger)
   .then(() => process.exit(0))
   .catch((err) => {
     console.error("[catchup] fatal:", err);

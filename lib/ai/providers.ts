@@ -2,6 +2,11 @@ import { getSecret } from "@/lib/secrets";
 import { MODELS, type ModelTier, type TaskName, modelForTask } from "./models";
 import { JobOSError } from "@/lib/errors/job-os-error";
 import { HTTP_STATUS_TO_CANONICAL } from "@/lib/errors/canonical-codes";
+import { getAiSettings } from "./settings";
+import { decideRoute, type CloudProvider } from "./routing";
+import { chatLocal, resolveLocalModel } from "./local";
+import { recordToLedger, hostOf, byteLength } from "./ledger";
+import { scrubPII } from "./redaction";
 
 function createProviderError(options: {
   provider: string;
@@ -51,6 +56,8 @@ export interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   json?: boolean;
+  /** JSON Schema for the reply; local models are constrained to it exactly. */
+  jsonSchema?: Record<string, unknown>;
   signal?: AbortSignal;
 }
 
@@ -74,70 +81,147 @@ function resolveModel(opts: ChatOptions): string {
 }
 
 /**
- * Universal chat dispatcher:
- * Automatically uses the active provider based on configured keys:
- * 1. Explicit opts.provider if given
- * 2. Local Ollama if OLLAMA_BASE_URL or LOCAL_AI_ENABLED is set
- * 3. GEMINI_API_KEY if configured
- * 4. OPENAI_API_KEY if configured
- * 5. ANTHROPIC_API_KEY if configured
- * 6. OPENROUTER_API_KEY fallback
+ * Single dispatcher for every model call.
+ *
+ * Privacy rules (see ./routing.ts): private mode always runs locally; enhanced
+ * mode sends only consented tasks to the cloud, with contact details scrubbed
+ * unless the task needs them. Every call is written to the privacy ledger.
  */
 export async function universalChat(opts: ChatOptions): Promise<ChatResult> {
-  const localUrl = (await getSecret("OLLAMA_BASE_URL")) || process.env.OLLAMA_BASE_URL;
-  const geminiKey = (await getSecret("GEMINI_API_KEY")) || process.env.GEMINI_API_KEY;
-  const openaiKey = (await getSecret("OPENAI_API_KEY")) || process.env.OPENAI_API_KEY;
-  const anthropicKey = (await getSecret("ANTHROPIC_API_KEY")) || process.env.ANTHROPIC_API_KEY;
-  const openrouterKey = (await getSecret("OPENROUTER_API_KEY")) || process.env.OPENROUTER_API_KEY;
-
-  // Model preference configuration
-  const modelPreference = (await getSecret("AI_MODEL_PREFERENCE")) || "both"; // "local" | "paid" | "both"
-  const defaultTier = (await getSecret("AI_DEFAULT_TIER")) || "local"; // "local" | "paid"
-
-  let effectiveLocalUrl = localUrl;
-  if (!effectiveLocalUrl) {
-    try {
-      const probe = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(500) });
-      if (probe.ok) {
-        effectiveLocalUrl = "http://localhost:11434/v1";
-      }
-    } catch {
-      // Local Ollama offline
-    }
-  }
-
-  // Priority rule: If local model is selected as default, it remains the main model and paid ones are turned off.
-  if (modelPreference === "local" || (modelPreference === "both" && defaultTier === "local")) {
-    const url = effectiveLocalUrl ?? "http://localhost:11434/v1";
-    return chatOllama(opts, url);
-  }
-
-  // Otherwise paid models are primary
-  const targetProvider = opts.provider ?? (
-    geminiKey ? "gemini" :
-    openaiKey ? "openai" :
-    anthropicKey ? "anthropic" :
-    openrouterKey ? "openrouter" :
-    (effectiveLocalUrl ? "ollama" : "openrouter")
+  const settings = await getAiSettings();
+  const keys = {
+    gemini: await getSecret("GEMINI_API_KEY"),
+    openai: await getSecret("OPENAI_API_KEY"),
+    anthropic: await getSecret("ANTHROPIC_API_KEY"),
+    openrouter: await getSecret("OPENROUTER_API_KEY"),
+  };
+  const availableCloud = new Set(
+    (Object.keys(keys) as CloudProvider[]).filter((p) => Boolean(keys[p]?.trim())),
   );
 
-  if (targetProvider === "ollama") {
-    return chatOllama(opts, effectiveLocalUrl ?? "http://localhost:11434/v1");
-  }
+  const route = decideRoute({
+    settings,
+    task: opts.task,
+    availableCloud,
+    requested: opts.provider === "ollama" ? "ollama" : opts.provider,
+  });
 
-  if (targetProvider === "gemini" && geminiKey) {
-    return chatGemini(opts, geminiKey);
-  }
+  if (route.kind === "local") return runLocal(opts, settings.localBaseUrl, settings.localModel);
 
-  if (targetProvider === "openai" && openaiKey) {
-    return chatOpenAI(opts, openaiKey);
+  const cloudOpts = route.redact
+    ? { ...opts, messages: opts.messages.map((m) => ({ ...m, content: scrubPII(m.content) })) }
+    : opts;
+  const started = Date.now();
+  const bytesOut = byteLength(JSON.stringify(cloudOpts.messages));
+  try {
+    const result = await runCloud(route.provider, cloudOpts, keys[route.provider]!);
+    recordToLedger({
+      kind: "ai",
+      purpose: opts.task ?? "untagged",
+      provider: route.provider,
+      model: result.model,
+      destination: CLOUD_HOSTS[route.provider],
+      local: false,
+      redacted: route.redact,
+      bytesOut,
+      bytesIn: byteLength(result.text),
+      durationMs: Date.now() - started,
+      ok: true,
+    });
+    return result;
+  } catch (err) {
+    recordToLedger({
+      kind: "ai",
+      purpose: opts.task ?? "untagged",
+      provider: route.provider,
+      destination: CLOUD_HOSTS[route.provider],
+      local: false,
+      redacted: route.redact,
+      bytesOut,
+      durationMs: Date.now() - started,
+      ok: false,
+      errorReason: err instanceof JobOSError ? err.reason : "REQUEST_FAILED",
+    });
+    // A failed cloud call falls back to the local model rather than failing
+    // the feature; nothing further leaves the machine.
+    return runLocal(opts, settings.localBaseUrl, settings.localModel);
   }
+}
 
-  if (targetProvider === "anthropic" && anthropicKey) {
-    return chatAnthropic(opts, anthropicKey);
+const CLOUD_HOSTS: Record<CloudProvider, string> = {
+  gemini: "generativelanguage.googleapis.com",
+  openai: "api.openai.com",
+  anthropic: "api.anthropic.com",
+  openrouter: "openrouter.ai",
+};
+
+function runCloud(provider: CloudProvider, opts: ChatOptions, key: string): Promise<ChatResult> {
+  switch (provider) {
+    case "gemini":
+      return chatGemini(opts, key);
+    case "openai":
+      return chatOpenAI(opts, key);
+    case "anthropic":
+      return chatAnthropic(opts, key);
+    case "openrouter":
+      return chatOpenRouter(opts, key);
   }
+}
 
-  return chatOpenRouter(opts, openrouterKey ?? "");
+async function runLocal(opts: ChatOptions, baseUrl: string, configured?: string): Promise<ChatResult> {
+  const model = await resolveLocalModel(baseUrl, configured);
+  const started = Date.now();
+  const bytesOut = byteLength(JSON.stringify(opts.messages));
+  try {
+    const out = await chatLocal({
+      baseUrl,
+      model,
+      messages: opts.messages,
+      temperature: opts.temperature,
+      maxTokens: opts.maxTokens,
+      format: opts.jsonSchema ?? (opts.json ? true : undefined),
+      signal: opts.signal,
+    });
+    recordToLedger({
+      kind: "ai",
+      purpose: opts.task ?? "untagged",
+      provider: "ollama",
+      model,
+      destination: hostOf(baseUrl),
+      local: true,
+      bytesOut,
+      bytesIn: byteLength(out.text),
+      durationMs: Date.now() - started,
+      ok: true,
+    });
+    return {
+      text: out.text,
+      model,
+      provider: "ollama",
+      usage: {
+        prompt_tokens: out.promptTokens,
+        completion_tokens: out.completionTokens,
+        total_tokens:
+          out.promptTokens !== undefined && out.completionTokens !== undefined
+            ? out.promptTokens + out.completionTokens
+            : undefined,
+      },
+    };
+  } catch (err) {
+    recordToLedger({
+      kind: "ai",
+      purpose: opts.task ?? "untagged",
+      provider: "ollama",
+      model,
+      destination: hostOf(baseUrl),
+      local: true,
+      bytesOut,
+      durationMs: Date.now() - started,
+      ok: false,
+      errorReason: err instanceof JobOSError ? err.reason : "REQUEST_FAILED",
+    });
+    throw err;
+  }
 }
 
 function resolveTimeoutSignal(signal?: AbortSignal, timeoutMs = 45_000): AbortSignal {
@@ -151,45 +235,6 @@ function resolveTimeoutSignal(signal?: AbortSignal, timeoutMs = 45_000): AbortSi
     return signal;
   }
   return AbortSignal.timeout(timeoutMs);
-}
-
-async function chatOllama(opts: ChatOptions, baseUrl: string): Promise<ChatResult> {
-  const model = opts.model ?? process.env.LOCAL_MODEL_NAME ?? "llama3.2";
-  const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
-
-  const body: Record<string, unknown> = {
-    model,
-    messages: opts.messages,
-    temperature: opts.temperature ?? 0.3,
-    ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
-    ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-  };
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: resolveTimeoutSignal(opts.signal),
-  });
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw createProviderError({
-      provider: "Ollama",
-      model,
-      status: res.status,
-      detail,
-      location: "lib/ai/providers.ts:chatOllama",
-    });
-  }
-
-  const data = await res.json();
-  return {
-    text: data.choices?.[0]?.message?.content ?? "",
-    model,
-    provider: "ollama",
-    usage: data.usage,
-  };
 }
 
 async function chatOpenRouter(opts: ChatOptions, apiKey: string): Promise<ChatResult> {
@@ -289,22 +334,25 @@ async function chatOpenAI(opts: ChatOptions, apiKey: string): Promise<ChatResult
 
 async function chatGemini(opts: ChatOptions, apiKey: string): Promise<ChatResult> {
   const model = opts.model ?? (opts.tier === "strong" ? "gemini-2.5-pro" : "gemini-2.5-flash");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   // Format messages into Google Generative AI shape
-  const contents = opts.messages.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+  const contents = opts.messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
 
   const systemMessage = opts.messages.find((m) => m.role === "system");
   const systemInstruction = systemMessage ? { parts: [{ text: systemMessage.content }] } : undefined;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    // Header rather than ?key= so the key never lands in URL logs.
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
-      contents: contents.filter((c) => c.role !== "system"),
+      contents,
       ...(systemInstruction ? { systemInstruction } : {}),
       generationConfig: {
         temperature: opts.temperature ?? 0.3,

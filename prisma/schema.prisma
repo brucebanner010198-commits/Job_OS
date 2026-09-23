@@ -946,3 +946,28 @@ model InterviewSimulationRound {
   @@index([userId, profileId, company])
 }
 
+
+/// Privacy ledger: one row per model call or outbound request.
+/// Records where data went and how much, never the content itself.
+model PrivacyLedgerEntry {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  /// "ai" for model calls, "http" for other outbound requests.
+  kind        String
+  /// Task name for AI calls, source or feature name otherwise.
+  purpose     String
+  provider    String
+  model       String?
+  /// Host the data was sent to, e.g. 127.0.0.1:11434.
+  destination String
+  local       Boolean
+  redacted    Boolean  @default(false)
+  bytesOut    Int
+  bytesIn     Int      @default(0)
+  durationMs  Int
+  ok          Boolean
+  errorReason String?
+
+  @@index([createdAt])
+  @@index([local, createdAt])
+}
