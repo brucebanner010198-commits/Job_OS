@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: jobos
       POSTGRES_DB: jobos
     ports:
-      - "5432:5432"
+      # Localhost only: the app reaches it locally; LAN clients never should.
+      - "127.0.0.1:5432:5432"
     volumes:
       - jobos-db-data:/var/lib/postgresql/data
     healthcheck:

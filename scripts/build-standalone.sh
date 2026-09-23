@@ -2,7 +2,7 @@
 # Build Next.js standalone output and stage static assets for the Tauri sidecar.
 set -euo pipefail
 
-npm run build
+STANDALONE=1 npm run build
 
 # Production builds emit to .next-build (see distDir in next.config.ts) so they
 # never touch the dev server's .next cache.

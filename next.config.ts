@@ -13,8 +13,9 @@ const distDir = isProductionBuild ? ".next-build" : ".next";
 const nextConfig: NextConfig = {
   // Keep dev and production caches on separate dirs (see distDir note above).
   distDir,
-  // Standalone output for the Tauri desktop sidecar (Phase 12).
-  output: "standalone",
+  // Standalone output only for the (deferred) Tauri desktop sidecar build;
+  // `next start`, used by `npm run jobos`, does not support it.
+  ...(process.env.STANDALONE === "1" ? { output: "standalone" as const } : {}),
   // Prisma, PDF, and DOCX parsers must stay external to the server bundle.
   serverExternalPackages: ["@prisma/client", "prisma", "pdf-parse", "pdfjs-dist", "mammoth"],
   experimental: {

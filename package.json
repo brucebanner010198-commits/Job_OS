@@ -70,7 +70,9 @@
     "test:coaching-session": "tsx scripts/test-coaching-session.ts",
     "test:ux": "tsx scripts/test-ux-improvements.ts",
     "test:ai-routing": "tsx scripts/test-ai-routing.ts",
-    "test:voice-local": "tsx scripts/test-voice-local.ts"
+    "test:voice-local": "tsx scripts/test-voice-local.ts",
+    "setup": "bash scripts/jobos.sh setup",
+    "jobos": "bash scripts/jobos.sh start"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
