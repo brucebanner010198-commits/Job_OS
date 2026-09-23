@@ -80,7 +80,12 @@ start() {
   start_database
   start_ollama
   start_stt
-  [ -d .next-build ] || npm run build
+  # Rebuild when there is no build yet, or any source changed since the last one;
+  # otherwise a restart would quietly serve old code.
+  if [ ! -f .next-build/BUILD_ID ] ||
+    [ -n "$(find app components lib proxy.ts next.config.ts package.json -newer .next-build/BUILD_ID -type f -print -quit 2>/dev/null)" ]; then
+    npm run build
+  fi
   say "Job OS → http://$HOST:$PORT"
   exec env BUILD=1 npx next start -H "$HOST" -p "$PORT"
 }
