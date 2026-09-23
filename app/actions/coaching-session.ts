@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAccessForMutation } from "@/lib/auth/require-access";
 import { getAppContext } from "@/lib/app-context";
@@ -19,7 +20,6 @@ export interface ProcessSessionResult {
 export interface SaveSessionResult {
   ok: boolean;
   workLogId?: string;
-  achievementsAdded?: number;
   error?: string;
 }
 
@@ -88,10 +88,15 @@ export async function saveCoachingSessionAction(
 
     // 3. Turn the session into draft bullets for review. Nothing reaches the
     //    master resume until the user approves each one on the journal page.
-    let achievementsAdded = 0;
+    //    Drafting runs after the response: on a local model it can take a minute.
     if (addToProfile) {
-      const { bulletsCreated } = await compileWeeklyWorkLogs(scope);
-      achievementsAdded = bulletsCreated;
+      after(async () => {
+        try {
+          await compileWeeklyWorkLogs(scope);
+        } catch (err) {
+          console.error("[coaching] drafting bullets failed:", (err as Error).message);
+        }
+      });
     }
 
     revalidatePath("/journal");
@@ -101,7 +106,6 @@ export async function saveCoachingSessionAction(
     return {
       ok: true,
       workLogId: workLog.id,
-      achievementsAdded,
     };
   } catch (err) {
     return {
