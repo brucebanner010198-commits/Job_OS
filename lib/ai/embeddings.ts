@@ -1,66 +1,62 @@
 /**
- * OpenRouter embedding API - single entry for text → vector.
- * Used by the pgvector relevance scorer; falls back gracefully when no key.
+ * Text → vector, always on this machine (Ollama + nomic-embed-text).
+ *
+ * Embeddings are cheap to compute locally and are never worth sending your
+ * resume or journal to a cloud API, so this module has no cloud path in
+ * either privacy mode. Returns null when the local model is unavailable;
+ * every caller has a lexical fallback.
  */
-import { getSecret } from "@/lib/secrets";
+import { getAiSettings } from "./settings";
+import { recordToLedger, hostOf } from "./ledger";
 
-const BASE_URL = "https://openrouter.ai/api/v1";
-
-export const EMBEDDING_DIM = 1536;
-
-function embeddingModel(): string {
-  return process.env.EMBEDDING_MODEL?.trim() || "openai/text-embedding-3-small";
-}
-
-export function embeddingsEnabled(): boolean {
-  if (process.env.SCORING_MODE === "lexical") return false;
-  return true;
-}
+export const EMBEDDING_DIM = 768;
+export const LOCAL_EMBEDDING_MODEL = "nomic-embed-text";
 
 /**
- * Embed a text blob via OpenRouter. Returns null when unconfigured or on error.
+ * nomic-embed-text is trained with task prefixes: stored text is a
+ * "document", search text is a "query". Omitting them lowers retrieval quality.
  */
-export async function embedText(text: string): Promise<number[] | null> {
+export type EmbedKind = "document" | "query";
+
+export function embeddingsEnabled(): boolean {
+  return process.env.SCORING_MODE !== "lexical";
+}
+
+export async function embedText(text: string, kind: EmbedKind = "document"): Promise<number[] | null> {
   if (!embeddingsEnabled()) return null;
   const trimmed = text.trim().slice(0, 8000);
   if (!trimmed) return null;
 
-  let apiKey: string | undefined;
+  const { localBaseUrl } = await getAiSettings();
+  // Older installs set EMBEDDING_MODEL to a cloud slug ("openai/..."); only a
+  // local model name is honoured here.
+  const configured = process.env.EMBEDDING_MODEL?.trim();
+  const model = configured && !configured.includes("/") ? configured : LOCAL_EMBEDDING_MODEL;
+  const input = `search_${kind}: ${trimmed}`;
+  const started = Date.now();
   try {
-    apiKey = await getSecret("OPENROUTER_API_KEY");
-  } catch {
-    return null;
-  }
-  if (!apiKey) return null;
-
-  const enforceZdr = process.env.OPENROUTER_ENFORCE_ZDR !== "0";
-
-  try {
-    const res = await fetch(`${BASE_URL}/embeddings`, {
+    const res = await fetch(`${localBaseUrl}/api/embed`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.APP_URL ?? "http://localhost:3000",
-        "X-Title": "Job OS",
-      },
-      body: JSON.stringify({
-        model: embeddingModel(),
-        input: trimmed,
-        ...(enforceZdr
-          ? { provider: { zdr: true, data_collection: "deny" } }
-          : {}),
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, input, keep_alive: "30m" }),
       signal: AbortSignal.timeout(15_000),
     });
-
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      data?: { embedding?: number[] }[];
-    };
-    const vec = json.data?.[0]?.embedding;
-    if (!vec || vec.length === 0) return null;
-    return vec;
+    const json = res.ok ? ((await res.json()) as { embeddings?: number[][] }) : null;
+    const vec = json?.embeddings?.[0];
+    const ok = Boolean(vec && vec.length === EMBEDDING_DIM);
+    recordToLedger({
+      kind: "ai",
+      purpose: "embed",
+      provider: "ollama",
+      model,
+      destination: hostOf(localBaseUrl),
+      local: true,
+      bytesOut: Buffer.byteLength(input, "utf8"),
+      durationMs: Date.now() - started,
+      ok,
+      errorReason: ok ? undefined : res.ok ? "BAD_DIMENSION" : `HTTP_${res.status}`,
+    });
+    return ok ? vec! : null;
   } catch {
     return null;
   }

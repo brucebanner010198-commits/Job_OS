@@ -845,8 +845,11 @@ model TextEmbedding {
   profileId String
   profile   Profile                     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   cacheKey  String
-  embedding Unsupported("vector(1536)")
-  updatedAt DateTime                    @updatedAt
+  /// Legacy cloud embeddings (OpenRouter, 1536-d). No longer written.
+  embedding    Unsupported("vector(1536)")?
+  /// Local nomic-embed-text vectors (768-d), searched with an HNSW index.
+  embedding768 Unsupported("vector(768)")?
+  updatedAt    DateTime                    @updatedAt
 
   @@unique([userId, cacheKey])
   @@index([profileId, cacheKey])

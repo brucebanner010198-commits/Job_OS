@@ -53,9 +53,7 @@ async function upsertChunk(
 
   const vec = await embedText(trimmed);
   if (!vec) return;
-  const embCacheKey = `${scope.profileId}:${cacheKey}`;
-  const embId = `${scope.profileId}_${cacheKey.slice(0, 32)}`;
-  await saveEmbedding(scope, embId, embCacheKey, vec);
+  await saveEmbedding(scope, `${scope.profileId}:${cacheKey}`, vec);
 }
 
 /** Re-index all Tier-1 knowledge sources for a profile. */
