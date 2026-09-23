@@ -9,7 +9,8 @@
  *                               on cloud - the browser hands must stay local)
  *
  * Anything else → simulated. When a real driver is chosen and the job is a
- * hosted Greenhouse form, the Greenhouse driver fills it by field id instead.
+ * hosted Greenhouse form, the Greenhouse driver fills it by field id instead;
+ * other sites use the Jev driver when allowed (APPLY_JEV=0 turns it off).
  * This is the one place the env→driver decision lives, so call sites never branch.
  */
 import { simulatedDriver } from "@/lib/apply/driver-simulated";
@@ -17,6 +18,7 @@ import { playwrightDriver } from "@/lib/apply/driver-playwright";
 import { browserUseDriver } from "@/lib/apply/driver-browser-use";
 import { greenhouseDriver } from "@/lib/apply/driver-greenhouse";
 import { parseGreenhouseJobUrl } from "@/lib/apply/greenhouse";
+import { jevDriver } from "@/lib/apply/driver-jev";
 import type { ApplyDriver } from "@/lib/apply/types";
 
 export type ApplyDriverKind =
@@ -53,6 +55,11 @@ export function resolveApplyDriver(opts?: { failSubmit?: boolean; url?: string }
       dryRun: kind === "browser-use(dry-run)",
       headless: process.env.APPLY_HEADLESS !== "0",
     });
+  }
+  // Other sites: Jev drives the form when the user allowed it (Enhanced mode,
+  // applyAgent consent, TypeSafe key); otherwise the same local filler as before.
+  if (process.env.APPLY_JEV !== "0") {
+    return jevDriver({ fallbackDryRun: kind === "playwright(dry-run)" });
   }
   return playwrightDriver({ dryRun: kind === "playwright(dry-run)" });
 }

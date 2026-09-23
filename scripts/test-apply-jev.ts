@@ -8,6 +8,8 @@
 import { actionSpace, choose, shownValue, type Snapshot } from "@/lib/apply/jev/policy";
 import { SUBMIT_RE } from "@/lib/apply/jev/runner";
 import { snapshotScript } from "@/lib/apply/jev/snapshot";
+import { answerBook, jevDriver, jevGoal } from "@/lib/apply/driver-jev";
+import type { PreparedField } from "@/lib/apply/types";
 
 let passed = 0;
 let failed = 0;
@@ -106,6 +108,32 @@ async function main(): Promise<void> {
     parses = false;
   }
   check("patched snapshot is valid JavaScript", parses);
+
+  console.log("\nD. Driver:");
+  const pf = (key: string, value: string, source: PreparedField["source"] = "answers"): PreparedField => ({
+    key, label: key, value, source, confidence: 1, critical: false, freeText: false,
+  });
+  const book = answerBook([
+    pf("fullName", "Ada Lovelace King", "profile"),
+    pf("email", "ada@example.com", "profile"),
+    pf("phone", "", "unknown"),
+    pf("requiresSponsorship", "No"),
+    pf("eeoGender", "Female"),
+  ]);
+  check("name split into full/first/last answers", book["first name"] === "Ada" && book["last name"] === "Lovelace King");
+  check("unknown answers are not offered", !Object.values(book).includes(""));
+  check("EEO answers are never offered to Jev", !Object.values(book).includes("Female"));
+  const goal = jevGoal(Object.keys(book));
+  check("goal lists answer names, never values", goal.includes("email address") && !goal.includes("ada@example.com"));
+  const fb = jevDriver({ apiKey: async () => null, fallbackDryRun: true });
+  let fellBack = false;
+  try {
+    await fb.open("http://127.0.0.1/not-public");
+  } catch (e) {
+    // The local fallback refuses non-public URLs; reaching it proves no Jev session started.
+    fellBack = String(e).includes("playwrightDriver");
+  }
+  check("without consent or key it falls back to the local filler", fellBack);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
