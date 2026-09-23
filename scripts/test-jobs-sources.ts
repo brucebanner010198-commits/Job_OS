@@ -11,6 +11,12 @@ import { remoteokSource } from "@/lib/jobs/sources/remoteok";
 import { arbeitnowSource } from "@/lib/jobs/sources/arbeitnow";
 import { jobicySource } from "@/lib/jobs/sources/jobicy";
 import { SOURCES, enabledSources, discover } from "@/lib/jobs/sources/index";
+import {
+  parseAtsBoards,
+  queryTokens,
+  matchesQuery,
+  greenhouseContentToText,
+} from "@/lib/jobs/sources/ats-portals";
 
 let passed = 0;
 let failed = 0;
@@ -140,6 +146,44 @@ async function main(): Promise<void> {
       SOURCES.some((s) => s.name === "remoteok") &&
       SOURCES.some((s) => s.name === "arbeitnow") &&
       SOURCES.some((s) => s.name === "jobicy"),
+  );
+
+  // --- ATS portal matching (pure) ---------------------------------------------
+
+  console.log("\nats-portals matching:");
+
+  const senior = queryTokens("Senior Software Engineer");
+  check(
+    "multi-word query matches a title with all words",
+    matchesQuery(senior, "Senior Software Engineer, Payments San Francisco"),
+  );
+  check(
+    "multi-word query rejects a title missing a word",
+    !matchesQuery(senior, "Software Engineer, Payments"),
+  );
+  check(
+    "'remote' can match the location",
+    matchesQuery(queryTokens("software engineer remote"), "Software Engineer Remote - US"),
+  );
+  check(
+    "OR alternatives match either title",
+    matchesQuery(queryTokens("Data Scientist OR Staff Engineer"), "Staff Engineer, Infra") &&
+      matchesQuery(queryTokens("Data Scientist OR Staff Engineer"), "Senior Data Scientist"),
+  );
+  check("empty query matches everything", matchesQuery(queryTokens(""), "Anything"));
+  check(
+    "escaped Greenhouse HTML becomes plain text",
+    greenhouseContentToText("&lt;p&gt;Build &amp;amp; ship&lt;/p&gt;") === "Build & ship",
+  );
+  check("JOBS_ATS_COMPANIES unset uses defaults", parseAtsBoards(undefined) === null);
+  const boards = parseAtsBoards("greenhouse:Stripe, ashby:ramp,bogus:x,lever:../etc");
+  check(
+    "JOBS_ATS_COMPANIES parses valid entries and drops bad ones",
+    JSON.stringify(boards) ===
+      JSON.stringify([
+        { ats: "greenhouse", slug: "stripe" },
+        { ats: "ashby", slug: "ramp" },
+      ]),
   );
 
   // --- fixturesSource behaviour ------------------------------------------------
