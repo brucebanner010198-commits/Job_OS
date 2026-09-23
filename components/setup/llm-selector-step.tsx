@@ -18,7 +18,7 @@ export function LlmSelectorStep({
 }) {
   const [preference, setPreference] = useState<"local" | "paid" | "both">("both");
   const [defaultTier, setDefaultTier] = useState<"local" | "paid">("local");
-  const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
+  const [ollamaUrl, setOllamaUrl] = useState("http://127.0.0.1:11434");
   const [paidProvider, setPaidProvider] = useState<"openai" | "anthropic" | "gemini" | "openrouter">("openai");
   const [apiKey, setApiKey] = useState("");
   const [localStatus, setLocalStatus] = useState<{ online: boolean; models: string[] } | null>(null);
@@ -31,7 +31,7 @@ export function LlmSelectorStep({
       setDefaultTier(cfg.defaultTier);
       if (cfg.ollamaUrl) setOllamaUrl(cfg.ollamaUrl);
     });
-    checkLocalLlm("http://localhost:11434");
+    checkLocalLlm("http://127.0.0.1:11434");
   }, []);
 
   async function checkLocalLlm(url: string) {
@@ -216,7 +216,7 @@ export function LlmSelectorStep({
           <Input
             value={ollamaUrl}
             onChange={(e) => setOllamaUrl(e.target.value)}
-            placeholder="http://localhost:11434"
+            placeholder="http://127.0.0.1:11434"
             className="text-xs font-mono"
           />
         </div>

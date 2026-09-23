@@ -33,7 +33,11 @@ start_ollama() {
     open -ga Ollama 2>/dev/null || (nohup ollama serve >.logs/ollama.log 2>&1 &)
     wait_for "$OLLAMA_URL/api/tags" 30 || fail "Ollama did not start."
   fi
-  say "✓ local AI (Ollama)"
+  # Another Ollama (e.g. a Docker container) can answer on this port without
+  # Job OS's models; that would silently fall back to a weaker model.
+  curl -s "$OLLAMA_URL/api/tags" | grep -q "\"$CHAT_MODEL" ||
+    fail "The Ollama on $OLLAMA_URL has no $CHAT_MODEL. Quit other Ollama containers on port 11434 and open the Ollama app, or run: npm run setup"
+  say "✓ local AI (Ollama, $CHAT_MODEL)"
 }
 
 start_stt() {

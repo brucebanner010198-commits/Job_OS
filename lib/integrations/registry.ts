@@ -44,7 +44,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
         key: "OLLAMA_BASE_URL",
         label: "Base URL",
         secret: false,
-        placeholder: "http://localhost:11434/v1",
+        placeholder: "http://127.0.0.1:11434",
       },
       {
         key: "LOCAL_MODEL_NAME",

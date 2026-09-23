@@ -202,7 +202,7 @@ async function checkAiConfiguration(): Promise<DiagnosticProbeResult> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1200);
-    const res = await fetch("http://localhost:11434/api/tags", {
+    const res = await fetch("http://127.0.0.1:11434/api/tags", {
       signal: controller.signal,
     });
     clearTimeout(timeout);

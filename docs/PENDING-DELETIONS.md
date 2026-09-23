@@ -27,7 +27,11 @@ Your CV was imported while the AI was broken, so the crude fallback parser read 
 
 Profile `prof_64d82c61eda896d00779` has the same "Optimized Redis cache layer" experience twice. That duplicate came from the old coaching path, which is now fixed. Delete one of the two on the Master Resume page if you want.
 
-## 4. Files and code that could be removed
+## 4. Two Ollama servers on one port
+
+The Docker container `librarian_ollama` (from your librarian project) publishes port 11434, the same port as the Ollama app. "localhost" reaches the container (only `llama3.2:3b`), while Job OS now uses 127.0.0.1, which reaches the Ollama app with `gemma4:12b`. `npm run jobos` stops with a clear message if it lands on the wrong one. The clean fix is to move the librarian container to another port; I left it alone because it belongs to another project.
+
+## 5. Files and code that could be removed
 
 These have no effect on the running app. They're listed for a future cleanup pass rather than deleted tonight:
 

@@ -72,7 +72,8 @@
     "test:ai-routing": "tsx scripts/test-ai-routing.ts",
     "test:voice-local": "tsx scripts/test-voice-local.ts",
     "setup": "bash scripts/jobos.sh setup",
-    "jobos": "bash scripts/jobos.sh start"
+    "jobos": "bash scripts/jobos.sh start",
+    "test:apply-handoff": "tsx scripts/test-apply-handoff.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

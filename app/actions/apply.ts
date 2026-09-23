@@ -77,3 +77,15 @@ export async function resumeAiAction(
   revalidatePath("/apply");
   return { ok: true };
 }
+
+/** The user finished a handed-off application in the browser and submitted it. */
+export async function confirmSubmittedAction(
+  applicationId: string,
+): Promise<{ ok: boolean }> {
+  await requireAccessForMutation();
+  const { scope } = await getAppContext();
+  const { confirmSubmittedByUser } = await import("@/lib/apply/service");
+  const { ok } = await confirmSubmittedByUser(scope, applicationId);
+  revalidatePath("/apply");
+  return { ok };
+}

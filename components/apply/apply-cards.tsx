@@ -26,6 +26,7 @@ import {
   approveSubmitAction,
   takeControlAction,
   resumeAiAction,
+  confirmSubmittedAction,
 } from "@/app/actions/apply";
 import type { ApplyState, PreparedField } from "@/lib/apply/types";
 import type { ApplicationRowView } from "@/lib/apply/service";
@@ -192,6 +193,19 @@ export function ApplicationCard({
     });
   }
 
+  function confirmSubmitted() {
+    setError(null);
+    startSubmit(async () => {
+      try {
+        const { ok } = await confirmSubmittedAction(app.id);
+        if (ok) setLocalState("SUBMITTED");
+        router.refresh();
+      } catch (e) {
+        setError(msg(e));
+      }
+    });
+  }
+
   function resumeAi() {
     setError(null);
     startSubmit(async () => {
@@ -323,12 +337,24 @@ export function ApplicationCard({
                   <HandMetal className="h-3.5 w-3.5" /> Take control
                 </Button>
               )}
+              {localState === "HANDOFF" && (
+                <Button size="sm" variant="accent" onClick={confirmSubmitted} disabled={submitting}>
+                  I submitted it
+                </Button>
+              )}
               {(localState === "HANDOFF" || localState === "PAUSED") && (
-                <Button size="sm" variant="accent" onClick={resumeAi} disabled={submitting}>
+                <Button size="sm" variant="outline" onClick={resumeAi} disabled={submitting}>
                   Resume AI
                 </Button>
               )}
             </div>
+          )}
+
+          {localState === "HANDOFF" && (
+            <p className="mb-3 text-xs text-muted-foreground">
+              Nothing has been sent yet. Finish and submit the application on the employer&apos;s site,
+              then click &ldquo;I submitted it&rdquo; so it counts as applied.
+            </p>
           )}
 
           {localState === "PAUSED" && (

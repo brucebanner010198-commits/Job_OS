@@ -1,6 +1,7 @@
 "use server";
 
 import { getSecret, setSecret } from "@/lib/secrets";
+import { normalizeLocalBaseUrl } from "@/lib/ai/settings";
 import { revalidatePath } from "next/cache";
 
 import { requireAccessForMutation, requireAccessForRead } from "@/lib/auth/require-access";
@@ -19,7 +20,7 @@ export async function getLlmConfigAction(): Promise<LlmConfigState> {
   await requireAccessForRead();
   const modelPreference = ((await getSecret("AI_MODEL_PREFERENCE")) as "local" | "paid" | "both") || "both";
   const defaultTier = ((await getSecret("AI_DEFAULT_TIER")) as "local" | "paid") || "local";
-  const ollamaUrl = (await getSecret("OLLAMA_BASE_URL")) || "http://localhost:11434";
+  const ollamaUrl = normalizeLocalBaseUrl(await getSecret("OLLAMA_BASE_URL"));
 
   const openaiKey = await getSecret("OPENAI_API_KEY");
   const anthropicKey = await getSecret("ANTHROPIC_API_KEY");
@@ -48,7 +49,7 @@ export async function saveLlmConfigAction(input: {
   await setSecret("AI_DEFAULT_TIER", input.defaultTier);
 
   if (input.ollamaUrl?.trim()) {
-    await setSecret("OLLAMA_BASE_URL", input.ollamaUrl.trim());
+    await setSecret("OLLAMA_BASE_URL", normalizeLocalBaseUrl(input.ollamaUrl));
   }
 
   if (input.apiKey && input.apiKey.key.trim()) {
@@ -65,13 +66,13 @@ export async function saveLlmConfigAction(input: {
   return { success: true, message: "LLM configuration saved." };
 }
 
-export async function probeLocalLlmAction(url: string = "http://localhost:11434"): Promise<{
+export async function probeLocalLlmAction(url?: string): Promise<{
   online: boolean;
   models: string[];
 }> {
   await requireAccessForRead();
   try {
-    const cleanUrl = url.replace(/\/v1$/, "").replace(/\/$/, "");
+    const cleanUrl = normalizeLocalBaseUrl(url);
     const res = await fetch(`${cleanUrl}/api/tags`, {
       signal: AbortSignal.timeout(1500),
     });
