@@ -90,6 +90,16 @@ export const INTEGRATIONS: IntegrationDef[] = [
     docsUrl: "https://openrouter.ai/keys",
   },
   {
+    id: "typesafe-jev",
+    name: "TypeSafe Jev (application forms)",
+    description:
+      "Jev decides each click on application forms other than Greenhouse. It sees the form's labels and the names of your saved answers (for example \"email address\"), never the answers themselves, and never your demographic answers. Every call is logged in the privacy ledger. Switching it on allows the cloud for this one task only.",
+    category: "ai",
+    fields: [{ key: "TYPESAFE_API_KEY", label: "API key", secret: true }],
+    toggleKey: "APPLY_JEV_CONSENT",
+    docsUrl: "https://docs.typesafe.ai",
+  },
+  {
     id: "elevenlabs",
     name: "ElevenLabs ConvAI",
     description:
