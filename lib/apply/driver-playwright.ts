@@ -149,7 +149,9 @@ export type Launcher = (url: string) => Promise<BrowserSession>;
  * real logins are reused (plan §D - the profile is the crown jewel: kept in the
  * gitignored /.secrets dir, mode 0700). Honors APPLY_HEADLESS / APPLY_CHROME_PROFILE_DIR.
  */
-export const systemChromeLauncher: Launcher = async (url) => {
+export async function launchSystemChrome(
+  url: string,
+): Promise<{ page: Page; close(): Promise<void> }> {
   if (!isPublicHttpUrl(url)) {
     throw new Error(`playwrightDriver: refused non-public URL: ${url}`);
   }
@@ -166,13 +168,17 @@ export const systemChromeLauncher: Launcher = async (url) => {
   });
   const page = context.pages()[0] ?? (await context.newPage());
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
-
   return {
-    page: playwrightBrowserPage(page),
+    page,
     close: async () => {
       await context.close();
     },
   };
+}
+
+export const systemChromeLauncher: Launcher = async (url) => {
+  const { page, close } = await launchSystemChrome(url);
+  return { page: playwrightBrowserPage(page), close };
 };
 
 /** Adapter: wrap a real Playwright Page into the BrowserPage seam. */

@@ -73,7 +73,8 @@
     "test:voice-local": "tsx scripts/test-voice-local.ts",
     "setup": "bash scripts/jobos.sh setup",
     "jobos": "bash scripts/jobos.sh start",
-    "test:apply-handoff": "tsx scripts/test-apply-handoff.ts"
+    "test:apply-handoff": "tsx scripts/test-apply-handoff.ts",
+    "test:apply-greenhouse": "tsx scripts/test-apply-greenhouse.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

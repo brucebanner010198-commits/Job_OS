@@ -8,12 +8,15 @@
  *   JOB_OS_CLOUD=1            → force simulated (autonomy/automation auto-disables
  *                               on cloud - the browser hands must stay local)
  *
- * Anything else → simulated. This is the one place the env→driver decision lives,
- * so call sites never branch.
+ * Anything else → simulated. When a real driver is chosen and the job is a
+ * hosted Greenhouse form, the Greenhouse driver fills it by field id instead.
+ * This is the one place the env→driver decision lives, so call sites never branch.
  */
 import { simulatedDriver } from "@/lib/apply/driver-simulated";
 import { playwrightDriver } from "@/lib/apply/driver-playwright";
 import { browserUseDriver } from "@/lib/apply/driver-browser-use";
+import { greenhouseDriver } from "@/lib/apply/driver-greenhouse";
+import { parseGreenhouseJobUrl } from "@/lib/apply/greenhouse";
 import type { ApplyDriver } from "@/lib/apply/types";
 
 export type ApplyDriverKind =
@@ -36,10 +39,14 @@ export function activeApplyDriverKind(): ApplyDriverKind {
   return process.env.APPLY_DRY_RUN === "1" ? "playwright(dry-run)" : "playwright";
 }
 
-export function resolveApplyDriver(opts?: { failSubmit?: boolean }): ApplyDriver {
+export function resolveApplyDriver(opts?: { failSubmit?: boolean; url?: string }): ApplyDriver {
   const kind = activeApplyDriverKind();
   if (kind === "simulated") {
     return simulatedDriver({ failSubmit: opts?.failSubmit ?? false });
+  }
+  // Greenhouse never submits on its own, so dry-run and live behave the same.
+  if (opts?.url && parseGreenhouseJobUrl(opts.url)) {
+    return greenhouseDriver();
   }
   if (kind === "browser-use" || kind === "browser-use(dry-run)") {
     return browserUseDriver({

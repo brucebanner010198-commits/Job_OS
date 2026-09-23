@@ -382,7 +382,9 @@ export async function approveAndSubmit(
 
   // Default to the env-resolved driver (simulated unless APPLY_DRIVER=playwright
   // AND local); callers may inject one explicitly via opts.driver.
-  const driver = opts?.driver ?? resolveApplyDriver({ failSubmit: opts?.failSubmit });
+  const driver =
+    opts?.driver ??
+    resolveApplyDriver({ failSubmit: opts?.failSubmit, url: application.job.url ?? undefined });
 
   let submitResult: SubmitResult;
   try {
