@@ -15,7 +15,8 @@ const EMBEDDING_FAMILIES = ["embed", "bert", "bge", "minilm"];
 // Ollama's default context is too small for a resume plus a job description;
 // without this, long prompts are silently truncated.
 const NUM_CTX = 16_384;
-const LOCAL_TIMEOUT_MS = 180_000;
+// One long extraction measured 124 s on a 24 GB M3 under memory pressure.
+const LOCAL_TIMEOUT_MS = 300_000;
 const MODEL_CACHE_MS = 60_000;
 
 let modelCache: { baseUrl: string; at: number; names: string[] } | null = null;

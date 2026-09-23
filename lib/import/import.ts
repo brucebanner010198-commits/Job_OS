@@ -8,7 +8,7 @@
  * Binary PDF / DOCX parsing lives in `parse-document.ts`; callers extract plain
  * text upstream and feed it into `importResumeText`.
  */
-import { extractFromResume } from "@/lib/profile/extract";
+import { extractFromResume, splitResume } from "@/lib/profile/extract";
 import { extractFromResumeHeuristic } from "./heuristic";
 import { addEntries, saveNote } from "@/lib/profile/service";
 import type { AppScope } from "@/lib/profiles/types";
@@ -22,46 +22,49 @@ function toKind(kind: string): ProfileEntryKind | null {
   return KIND_VALUES.has(kind) ? (kind as ProfileEntryKind) : null;
 }
 
+type NewEntry = { kind: ProfileEntryKind; data: unknown; sourceNote?: string; sensitive?: boolean };
+
+function toEntries(extracted: { kind: string; title?: string; data: unknown; sensitive?: boolean }[]): NewEntry[] {
+  const out: NewEntry[] = [];
+  for (const e of extracted) {
+    const kind = toKind(e.kind);
+    if (!kind) continue; // skip kinds the model invented
+    out.push({ kind, data: e.data, sourceNote: e.title, sensitive: e.sensitive });
+  }
+  return out;
+}
+
+/** True when the resume is long enough to be extracted in several parts. */
+export function isLongResume(text: string): boolean {
+  return splitResume(text).length > 1;
+}
+
 /**
- * Import a pasted resume: parse it into entries, store the raw text as a note,
- * and persist the entries. Unknown/invalid kinds from the model are skipped.
- * Falls back to heuristic parsing if the AI model is unconfigured or unreachable.
- * Returns how many entries were added and which kinds they covered.
+ * Import a resume: store the raw text as a note, then extract and save
+ * entries part by part, so a long CV shows progress and a failure midway
+ * keeps what was already extracted. Falls back to heuristic parsing only when
+ * the local model is unreachable before anything was saved.
  */
 export async function importResumeText(
   scope: AppScope,
   text: string,
 ): Promise<{ added: number; kinds: string[] }> {
-  let extracted;
-  try {
-    extracted = await extractFromResume(text);
-  } catch (err) {
-    console.warn("AI resume extraction failed, using heuristic extraction fallback:", err);
-    extracted = extractFromResumeHeuristic(text);
-  }
-
   await saveNote(scope, text, null, "import");
 
-  const entries: {
-    kind: ProfileEntryKind;
-    data: unknown;
-    sourceNote?: string;
-    sensitive?: boolean;
-  }[] = [];
+  let added = 0;
+  const kinds = new Set<string>();
+  const save = async (entries: NewEntry[]) => {
+    added += await addEntries(scope, entries);
+    for (const e of entries) kinds.add(e.kind);
+  };
 
-  for (const e of extracted.entries) {
-    const kind = toKind(e.kind);
-    if (!kind) continue; // skip kinds the model invented
-    entries.push({
-      kind,
-      data: e.data,
-      sourceNote: e.title,
-      sensitive: e.sensitive,
-    });
+  try {
+    await extractFromResume(text, (part) => save(toEntries(part)));
+  } catch (err) {
+    if (added > 0) throw err;
+    console.warn("AI resume extraction failed, using heuristic extraction fallback:", (err as Error).message);
+    await save(toEntries(extractFromResumeHeuristic(splitResume(text).join("\n\n")).entries));
   }
 
-  const added = await addEntries(scope, entries);
-  const kinds = Array.from(new Set(entries.map((e) => e.kind)));
-
-  return { added, kinds };
+  return { added, kinds: [...kinds] };
 }
