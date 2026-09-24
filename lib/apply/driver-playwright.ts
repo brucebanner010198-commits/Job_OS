@@ -23,7 +23,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Page } from "playwright-core";
-import type { ApplyDriver, PageSignals, PreparedField } from "@/lib/apply/types";
+import type { ApplyDriver, PageSignals, PreparedField, SubmitResult } from "@/lib/apply/types";
 import { isPublicHttpUrl } from "@/lib/security/url";
 
 // --- pure: field → selector strategy -----------------------------------------
@@ -77,6 +77,8 @@ export interface RawPage {
   /** Whole-page HTML, lowercased. */
   htmlLower: string;
   hasPasswordField: boolean;
+  /** Visible, enabled text/select fields; tells a gated form from a blocked page. */
+  formFields?: number;
 }
 
 const CAPTCHA_MARKERS = [
@@ -117,7 +119,7 @@ export function buildSignals(raw: RawPage): PageSignals {
     /* invalid URL - host stays "" */
   }
   const { markers, hasCaptcha, hasLoginForm } = detectMarkers(raw);
-  return { url: raw.url, host, markers, hasLoginForm, hasCaptcha };
+  return { url: raw.url, host, markers, hasLoginForm, hasCaptcha, formFields: raw.formFields };
 }
 
 // --- the browser seam (real ⇄ fake) ------------------------------------------
@@ -137,6 +139,7 @@ export interface BrowserPage {
 export interface BrowserSession {
   page: BrowserPage;
   close(): Promise<void>;
+  focus?(): Promise<void>;
 }
 
 export type Launcher = (url: string) => Promise<BrowserSession>;
@@ -149,7 +152,9 @@ export type Launcher = (url: string) => Promise<BrowserSession>;
  * real logins are reused (plan §D - the profile is the crown jewel: kept in the
  * gitignored /.secrets dir, mode 0700). Honors APPLY_HEADLESS / APPLY_CHROME_PROFILE_DIR.
  */
-export const systemChromeLauncher: Launcher = async (url) => {
+export async function launchSystemChrome(
+  url: string,
+): Promise<{ page: Page; close(): Promise<void> }> {
   if (!isPublicHttpUrl(url)) {
     throw new Error(`playwrightDriver: refused non-public URL: ${url}`);
   }
@@ -166,14 +171,32 @@ export const systemChromeLauncher: Launcher = async (url) => {
   });
   const page = context.pages()[0] ?? (await context.newPage());
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
-
   return {
-    page: playwrightBrowserPage(page),
+    page,
     close: async () => {
       await context.close();
     },
   };
+}
+
+export const systemChromeLauncher: Launcher = async (url) => {
+  const { page, close } = await launchSystemChrome(url);
+  return { page: playwrightBrowserPage(page), close, focus: () => page.bringToFront() };
 };
+
+/** Count visible, enabled fields a person could fill (hidden and file inputs excluded). */
+export async function countFormFields(page: Page): Promise<number> {
+  return page
+    .$$eval("input, textarea, select", (els) =>
+      els.filter((e) => {
+        const el = e as HTMLInputElement;
+        const t = (el.type || "").toLowerCase();
+        if (["hidden", "file", "submit", "button", "image", "reset"].includes(t) || el.disabled) return false;
+        return el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+      }).length,
+    )
+    .catch(() => 0);
+}
 
 /** Adapter: wrap a real Playwright Page into the BrowserPage seam. */
 export function playwrightBrowserPage(page: Page): BrowserPage {
@@ -189,7 +212,8 @@ export function playwrightBrowserPage(page: Page): BrowserPage {
       const htmlLower = (await page.content().catch(() => "")).toLowerCase();
       const hasPasswordField =
         (await page.$('input[type="password"]').catch(() => null)) !== null;
-      return { url: page.url(), scriptSrcs, htmlLower, hasPasswordField };
+      const formFields = await countFormFields(page);
+      return { url: page.url(), scriptSrcs, htmlLower, hasPasswordField, formFields };
     },
 
     async fillField(candidates, value) {
@@ -305,7 +329,11 @@ export function playwrightDriver(opts?: {
       return requireSession().page.attachResumeFile(pdfPath);
     },
 
-    async submit(): Promise<{ ok: boolean; detail?: string }> {
+    async focus(): Promise<void> {
+      await session?.focus?.();
+    },
+
+    async submit(): Promise<SubmitResult> {
       // CONCURRENCY=1: a second submit() on the same driver is a no-double-submit
       // violation and throws (mirrors the simulated adapter / plan §8c, §C).
       if (submitted) {
@@ -318,13 +346,13 @@ export function playwrightDriver(opts?: {
       const { page } = requireSession();
 
       if (dryRun) {
-        return { ok: true, detail: "dry run - form filled, NOT submitted" };
+        return { outcome: "stopped_at_review", detail: "dry run: form filled, not submitted" };
       }
       const clicked = await page.clickSubmit();
       if (!clicked) {
-        return { ok: false, detail: "no submit control found on the page" };
+        return { outcome: "failed", detail: "no submit control found on the page" };
       }
-      return { ok: true };
+      return { outcome: "submitted", detail: "submit clicked; confirmation page not verified" };
     },
 
     async close(): Promise<void> {

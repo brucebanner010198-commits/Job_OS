@@ -6,7 +6,7 @@ import { requireAccessForMutation } from "@/lib/auth/require-access";
 import { getAppContext } from "@/lib/app-context";
 import { addEntries, saveNote } from "@/lib/profile/service";
 import { extractFromDictation } from "@/lib/profile/extract";
-import { importResumeText } from "@/lib/import/import";
+import { importResumeText, isLongResume } from "@/lib/import/import";
 import { parseResumeDocument } from "@/lib/import/parse-document";
 import { scheduleCareerRefresh } from "@/lib/career/trigger";
 import { JobOSError } from "@/lib/errors/job-os-error";
@@ -62,6 +62,8 @@ export async function saveDictationAction(
 export interface ImportResult {
   added: number;
   kinds: string[];
+  /** Long resumes finish in the background; entries appear as sections complete. */
+  background?: boolean;
   format?: "paste" | "pdf" | "docx";
 }
 
@@ -71,6 +73,10 @@ export async function importResumeAction(text: string): Promise<ImportResult> {
   const trimmed = text.trim();
   if (!trimmed) return { added: 0, kinds: [] };
   const { scope } = await getAppContext();
+  if (isLongResume(trimmed)) {
+    after(() => runBackgroundImport(scope, trimmed));
+    return { added: 0, kinds: [], background: true, format: "paste" };
+  }
   const res = await importResumeText(scope, trimmed);
 
   if (res.added > 0) {
@@ -117,6 +123,10 @@ export async function uploadResumeFileAction(
   }
 
   const parsed = await parseResumeDocument(file);
+  if (isLongResume(parsed.rawText)) {
+    after(() => runBackgroundImport(scope, parsed.rawText));
+    return { added: 0, kinds: [], background: true, format: parsed.format };
+  }
   const res = await importResumeText(scope, parsed.rawText);
 
   if (res.added > 0) {
@@ -128,4 +138,14 @@ export async function uploadResumeFileAction(
   revalidatePath("/master-resume");
   revalidatePath("/setup");
   return { ...res, format: parsed.format };
+}
+
+/** Runs after the response is sent; a local model needs minutes for a long CV. */
+async function runBackgroundImport(scope: Parameters<typeof importResumeText>[0], text: string): Promise<void> {
+  try {
+    const res = await importResumeText(scope, text);
+    if (res.added > 0) scheduleCareerRefresh(scope);
+  } catch (err) {
+    console.error("[import] background import stopped:", (err as Error).message);
+  }
 }

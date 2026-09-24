@@ -12,12 +12,22 @@ import { isConnected, readTokens } from "@/lib/gmail/token-store";
 import { liveGmailSource } from "@/lib/gmail/source-live";
 import { fixtureGmailSource } from "@/lib/gmail/source-fixture";
 
+/** Used when Gmail is not connected: syncing finds nothing rather than sample mail. */
+const disconnectedGmailSource: GmailSource = {
+  id: "disconnected",
+  isLive: false,
+  async listJobEmails() {
+    return [];
+  },
+};
+
 export async function getGmailSource(scope?: AppScope): Promise<GmailSource> {
   const profileId = scope?.profileId;
   if ((await isEnabled()) && (await isConnected(profileId))) {
     return liveGmailSource(profileId);
   }
-  return fixtureGmailSource();
+  // Sample emails would be saved as real inbox items, so they are opt-in.
+  return process.env.GMAIL_USE_FIXTURES === "1" ? fixtureGmailSource() : disconnectedGmailSource;
 }
 
 export interface GmailStatus {

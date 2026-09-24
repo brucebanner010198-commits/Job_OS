@@ -126,22 +126,7 @@ export async function approveCandidateBullet(scope: AppScope, bulletId: string) 
     ? `Compiled from journal on ${bullet.workLogEntry.date.toISOString().slice(0, 10)}: "${bullet.workLogEntry.title}"`
     : `Compiled from work journal`;
 
-  // Create ProfileEntry fact in the Master Profile
-  const fact = await db.profileEntry.create({
-    data: {
-      ...scopeData(scope),
-      kind,
-      data: {
-        text: bullet.bulletText,
-        impact: bullet.impactClaim,
-        project: bullet.workLogEntry?.project ?? "General",
-        source: "work_journal",
-        addedAt: new Date().toISOString(),
-      },
-      sourceNote: provenanceNote,
-      sensitive: false,
-    },
-  });
+  const fact = await mergeIntoProfile(scope, kind, bullet.bulletText, bullet.workLogEntry?.project ?? null, provenanceNote);
 
   // Mark CandidateBullet as approved with backlink
   await db.candidateBullet.update({
@@ -153,4 +138,71 @@ export async function approveCandidateBullet(scope: AppScope, bulletId: string) 
   });
 
   return { success: true, factId: fact.id };
+}
+
+const normalize = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Puts an approved bullet where the resume shows it: under the matching job
+ * (by company or title, else the most recent role), or into the skills group.
+ * Only when there is nothing to attach to does it create a new entry, in the
+ * same shape the resume importer uses. Duplicate bullets are not re-added.
+ */
+async function mergeIntoProfile(
+  scope: AppScope,
+  kind: ProfileEntryKind,
+  text: string,
+  project: string | null,
+  sourceNote: string,
+) {
+  if (kind === ProfileEntryKind.SKILL) {
+    const group = await db.profileEntry.findFirst({
+      where: { ...scopeWhere(scope), kind: ProfileEntryKind.SKILL },
+      orderBy: { createdAt: "asc" },
+    });
+    const skills = text.split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+    if (group) {
+      const data = group.data as { name?: string; skills?: string[] };
+      const existing = new Set((data.skills ?? []).map(normalize));
+      const merged = [...(data.skills ?? []), ...skills.filter((x) => !existing.has(normalize(x)))];
+      return db.profileEntry.update({ where: { id: group.id }, data: { data: { ...data, skills: merged } } });
+    }
+    return db.profileEntry.create({
+      data: { ...scopeData(scope), kind, data: { name: "Skills", skills }, sourceNote, sensitive: false },
+    });
+  }
+
+  const roles = await db.profileEntry.findMany({
+    where: { ...scopeWhere(scope), kind: ProfileEntryKind.EXPERIENCE },
+    orderBy: { createdAt: "desc" },
+  });
+  const wanted = project ? normalize(project) : "";
+  const target =
+    (wanted &&
+      roles.find((r) => {
+        const d = r.data as { company?: string; title?: string };
+        return [d.company, d.title].some((v) => v && normalize(v).includes(wanted));
+      })) ||
+    roles.find((r) => /present|current/i.test(String((r.data as { end?: string }).end ?? ""))) ||
+    roles[0];
+
+  if (target) {
+    const data = target.data as { bullets?: string[] };
+    const bullets = data.bullets ?? [];
+    if (bullets.some((b) => normalize(b) === normalize(text))) return target;
+    return db.profileEntry.update({
+      where: { id: target.id },
+      data: { data: { ...data, bullets: [...bullets, text] } },
+    });
+  }
+
+  return db.profileEntry.create({
+    data: {
+      ...scopeData(scope),
+      kind: ProfileEntryKind.PROJECT,
+      data: { name: project ?? "Work journal", bullets: [text] },
+      sourceNote,
+      sensitive: false,
+    },
+  });
 }

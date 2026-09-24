@@ -111,7 +111,10 @@ export async function extractFromDictation(text: string): Promise<Extracted> {
  * present, and PROJECT / CERTIFICATION / ACHIEVEMENT as found.
  * Cheap tier; very low temperature.
  */
-export async function extractFromResume(text: string): Promise<Extracted> {
+export async function extractFromResume(
+  text: string,
+  onPart?: (entries: ExtractedEntry[], done: number, total: number) => Promise<void>,
+): Promise<Extracted> {
   const system =
     "You parse a full resume into structured career facts. Produce one " +
     "EXPERIENCE entry per role (each with its bullets), one EDUCATION entry " +
@@ -120,21 +123,64 @@ export async function extractFromResume(text: string): Promise<Extracted> {
     "PROJECT, CERTIFICATION, and ACHIEVEMENT entries wherever present. " +
     "Be strictly extractive: copy titles, employers, dates, and metrics " +
     "exactly as written and never invent any that are not on the resume. " +
+    // Bullets are copied verbatim here; polishing is a separate, reviewable step.
     SHAPE_RULE +
-    " " +
-    BULLET_RULE +
     " " +
     SENSITIVE_RULE +
     " " +
     RESPONSE_RULE;
 
-  const { value } = await chatJson(extractedEntriesSchema, {
-    task: "parseResume",
-    temperature: 0.1,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: text },
-    ],
-  });
-  return value;
+  const parts = splitResume(text);
+  const seen = new Set<string>();
+  const entries: ExtractedEntry[] = [];
+  // Sequential: a local model runs one request at a time anyway.
+  for (const [i, part] of parts.entries()) {
+    const note = parts.length > 1 ? ` This is part ${i + 1} of ${parts.length} of one resume; extract only what this part contains.` : "";
+    const { value } = await chatJson(extractedEntriesSchema, {
+      task: "parseResume",
+      temperature: 0.1,
+      messages: [
+        { role: "system", content: system + note },
+        { role: "user", content: part },
+      ],
+    });
+    const fresh = value.entries.filter((e) => {
+      const key = `${e.kind}:${JSON.stringify(e.data)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    entries.push(...fresh);
+    await onPart?.(fresh, i + 1, parts.length);
+  }
+  return { entries };
+}
+
+const PART_CHARS = 6000;
+
+/**
+ * Long CVs overflow a local model's context, so they are split on paragraph
+ * breaks into parts of about PART_CHARS. Table-of-contents lines ("Skills . . . 4")
+ * are dropped first; left in, they become bogus entries.
+ */
+export function splitResume(text: string): string[] {
+  const cleaned = text
+    .split("\n")
+    .filter((line) => !/(\.\s?){5,}\s*\d*\s*$/.test(line))
+    .join("\n")
+    .trim();
+  if (cleaned.length <= PART_CHARS) return [cleaned];
+
+  const parts: string[] = [];
+  let current = "";
+  for (const para of cleaned.split(/\n\s*\n/)) {
+    if (current && current.length + para.length > PART_CHARS) {
+      parts.push(current.trim());
+      current = "";
+    }
+    // A single oversized paragraph is cut at the limit rather than dropped.
+    for (let i = 0; i < para.length; i += PART_CHARS) current += para.slice(i, i + PART_CHARS) + "\n\n";
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
 }

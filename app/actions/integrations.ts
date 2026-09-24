@@ -20,6 +20,27 @@ import {
   saveIntegrationSecretsSchema,
 } from "@/lib/validation/action-schemas";
 import { auditIntegrationSecretSaved } from "@/lib/observability/audit";
+import { getAiSettings, grantCloudConsent, revokeCloudConsent } from "@/lib/ai/settings";
+
+/**
+ * The Jev switch is not a plain flag: it is the cloud consent for the
+ * "applyAgent" task. On adds that task (Enhanced mode, that task only);
+ * off removes it and returns to Private mode when nothing else is allowed.
+ */
+const JEV_CONSENT_TOGGLE = "APPLY_JEV_CONSENT";
+
+async function jevConsentGiven(): Promise<boolean> {
+  const s = await getAiSettings();
+  return s.mode === "enhanced" && Boolean(s.consent?.tasks.includes("applyAgent"));
+}
+
+async function setJevConsent(enabled: boolean): Promise<void> {
+  const current = (await getAiSettings()).consent?.tasks ?? [];
+  const others = current.filter((t) => t !== "applyAgent");
+  if (enabled) await grantCloudConsent([...others, "applyAgent"]);
+  else if (others.length) await grantCloudConsent(others);
+  else await revokeCloudConsent();
+}
 
 export interface IntegrationFieldStatus {
   key: string;
@@ -55,6 +76,7 @@ async function fieldStatuses(
 
 async function isEnabled(def: IntegrationDef): Promise<boolean> {
   if (!def.toggleKey) return true;
+  if (def.toggleKey === JEV_CONSENT_TOGGLE) return jevConsentGiven();
   const v = await getSecret(def.toggleKey);
   if (def.toggleKey === "ELEVENLABS_VOICE_DISABLED") return v !== "1";
   if (def.toggleKey === "CARTESIA_VOICE_DISABLED") return v !== "1";
@@ -132,7 +154,9 @@ export async function setIntegrationEnabledAction(
   const def = integrationById(integrationId);
   if (!def?.toggleKey) throw new Error("This integration has no toggle");
 
-  if (def.toggleKey === "ELEVENLABS_VOICE_DISABLED") {
+  if (def.toggleKey === JEV_CONSENT_TOGGLE) {
+    await setJevConsent(enabled);
+  } else if (def.toggleKey === "ELEVENLABS_VOICE_DISABLED") {
     await setSecret(def.toggleKey, enabled ? "0" : "1");
   } else if (def.toggleKey === "CARTESIA_VOICE_DISABLED") {
     await setSecret(def.toggleKey, enabled ? "0" : "1");

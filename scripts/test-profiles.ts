@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 /**
  * Multi-profile isolation tests. Requires DATABASE_URL.
  * Run: npm run test:profiles

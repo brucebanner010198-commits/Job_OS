@@ -328,7 +328,7 @@ console.log("\n§NO-DOUBLE-SUBMIT - second submit() call throws; SUBMITTED has n
   await driver.scan();
   await driver.fill([]);
   const r1 = await driver.submit();
-  firstOk = r1.ok;
+  firstOk = r1.outcome !== "failed";
 
   // Second submit - must throw (concurrency=1 invariant)
   try {
@@ -337,7 +337,7 @@ console.log("\n§NO-DOUBLE-SUBMIT - second submit() call throws; SUBMITTED has n
     secondThrew = true;
   }
 
-  check("NO-DOUBLE: first submit() → ok:true", firstOk === true);
+  check("NO-DOUBLE: first submit() does not fail", firstOk === true);
   check("NO-DOUBLE: second submit() throws  [concurrency=1 invariant]", secondThrew === true);
 
   // State machine: SUBMITTED has no outgoing transitions
@@ -423,11 +423,17 @@ console.log("\n§HAPPY-PATH - full QUEUED → PREPARING → REVIEW → SUBMITTIN
   await driver.fill(plan.fields);
 
   const submitResult = await driver.submit();
-  check("HAPPY-PATH: submit() returns ok:true (not failSubmit)", submitResult.ok === true);
+  check(
+    "HAPPY-PATH: simulated submit stops at review (a simulation never counts as applied)",
+    submitResult.outcome === "stopped_at_review",
+  );
 
-  // Advance state machine on success
-  state = nextState(state, "SUBMITTED_OK") as ApplyState;
-  check("HAPPY-PATH: SUBMITTING --SUBMITTED_OK--> SUBMITTED", state === "SUBMITTED");
+  // Nothing was sent, so the user finishes it; only their confirmation submits.
+  state = nextState(state, "STOPPED_AT_REVIEW") as ApplyState;
+  check("HAPPY-PATH: SUBMITTING --STOPPED_AT_REVIEW--> HANDOFF", state === "HANDOFF");
+  check("HAPPY-PATH: HANDOFF is not terminal", isTerminal(state) === false);
+  state = nextState(state, "USER_CONFIRMED_SUBMIT") as ApplyState;
+  check("HAPPY-PATH: HANDOFF --USER_CONFIRMED_SUBMIT--> SUBMITTED", state === "SUBMITTED");
   check("HAPPY-PATH: final state is terminal", isTerminal(state) === true);
   check("HAPPY-PATH: canSubmit after SUBMITTED === false", canSubmit(state) === false);
 }
@@ -446,7 +452,7 @@ console.log("\n§HAPPY-PATH-FAIL - SUBMITTING → FAILED on driver failure");
   await driver.scan();
   await driver.fill([]);
   const result = await driver.submit();
-  check("FAIL-PATH: failSubmit driver → ok:false", result.ok === false);
+  check("FAIL-PATH: failSubmit driver → outcome failed", result.outcome === "failed");
 
   state = nextState(state, "SUBMITTED_FAIL") as ApplyState;
   check("FAIL-PATH: SUBMITTING --SUBMITTED_FAIL--> FAILED", state === "FAILED");

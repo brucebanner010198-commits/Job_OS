@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 /**
  * Validation test for Career Journal, Work History Compiler, and Skill Gap Routing.
  * Run with: npx tsx scripts/test-career-journal.ts
@@ -94,8 +95,15 @@ async function main() {
     where: { id: approval.factId! },
   });
   assert.ok(createdFact, "ProfileEntry should exist in master profile");
-  assert.match(createdFact.sourceNote || "", /journal/i, "Provenance note should mention journal");
-  console.log("✓ Approved bullet successfully graduated to Master Profile with provenance intact.");
+  const factData = createdFact.data as { bullets?: string[]; skills?: string[] };
+  const shown = [...(factData.bullets ?? []), ...(factData.skills ?? [])].join("\n");
+  assert.ok(
+    shown.includes(candidateBullet.bulletText.split(/[,;]/)[0]!.trim()),
+    "Approved text should appear in the entry's bullets or skills, where the resume page renders it",
+  );
+  const refreshed = await db.candidateBullet.findUniqueOrThrow({ where: { id: candidateBullet.id } });
+  assert.equal(refreshed.profileEntryId, createdFact.id, "Bullet should link back to the entry it updated");
+  console.log("✓ Approved bullet landed in a visible resume entry with a backlink.");
 
   // 6. Test ATS & JobSpy Discovery Sources
   console.log("Testing direct ATS source adapter...");

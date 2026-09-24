@@ -166,11 +166,12 @@ check(
   legalEvents("QUEUED").length === 1 && legalEvents("QUEUED")[0] === "PREPARE",
 );
 check(
-  "SUBMITTING has [SUBMITTED_OK, SUBMITTED_FAIL, CAPTCHA_DETECTED]",
+  "SUBMITTING has [SUBMITTED_OK, SUBMITTED_FAIL, CAPTCHA_DETECTED, STOPPED_AT_REVIEW]",
   legalEvents("SUBMITTING").includes("SUBMITTED_OK") &&
     legalEvents("SUBMITTING").includes("SUBMITTED_FAIL") &&
     legalEvents("SUBMITTING").includes("CAPTCHA_DETECTED") &&
-    legalEvents("SUBMITTING").length === 3,
+    legalEvents("SUBMITTING").includes("STOPPED_AT_REVIEW") &&
+    legalEvents("SUBMITTING").length === 4,
 );
 check(
   "PAUSED can RESUME_AI or TAKE_CONTROL",

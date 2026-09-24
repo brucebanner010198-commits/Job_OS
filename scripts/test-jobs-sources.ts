@@ -11,6 +11,12 @@ import { remoteokSource } from "@/lib/jobs/sources/remoteok";
 import { arbeitnowSource } from "@/lib/jobs/sources/arbeitnow";
 import { jobicySource } from "@/lib/jobs/sources/jobicy";
 import { SOURCES, enabledSources, discover } from "@/lib/jobs/sources/index";
+import {
+  parseAtsBoards,
+  queryTokens,
+  matchesQuery,
+  greenhouseContentToText,
+} from "@/lib/jobs/sources/ats-portals";
 
 let passed = 0;
 let failed = 0;
@@ -131,14 +137,53 @@ async function main(): Promise<void> {
   }
 
   check(
-    "SOURCES contains six adapters",
-    SOURCES.length === 6 &&
+    "SOURCES contains the eight adapters",
+    SOURCES.length === 8 &&
+      SOURCES.some((s) => s.name === "ats-portals") &&
       SOURCES.some((s) => s.name === "fixtures") &&
       SOURCES.some((s) => s.name === "jsearch") &&
       SOURCES.some((s) => s.name === "remotive") &&
       SOURCES.some((s) => s.name === "remoteok") &&
       SOURCES.some((s) => s.name === "arbeitnow") &&
       SOURCES.some((s) => s.name === "jobicy"),
+  );
+
+  // --- ATS portal matching (pure) ---------------------------------------------
+
+  console.log("\nats-portals matching:");
+
+  const senior = queryTokens("Senior Software Engineer");
+  check(
+    "multi-word query matches a title with all words",
+    matchesQuery(senior, "Senior Software Engineer, Payments San Francisco"),
+  );
+  check(
+    "multi-word query rejects a title missing a word",
+    !matchesQuery(senior, "Software Engineer, Payments"),
+  );
+  check(
+    "'remote' can match the location",
+    matchesQuery(queryTokens("software engineer remote"), "Software Engineer Remote - US"),
+  );
+  check(
+    "OR alternatives match either title",
+    matchesQuery(queryTokens("Data Scientist OR Staff Engineer"), "Staff Engineer, Infra") &&
+      matchesQuery(queryTokens("Data Scientist OR Staff Engineer"), "Senior Data Scientist"),
+  );
+  check("empty query matches everything", matchesQuery(queryTokens(""), "Anything"));
+  check(
+    "escaped Greenhouse HTML becomes plain text",
+    greenhouseContentToText("&lt;p&gt;Build &amp;amp; ship&lt;/p&gt;") === "Build & ship",
+  );
+  check("JOBS_ATS_COMPANIES unset uses defaults", parseAtsBoards(undefined) === null);
+  const boards = parseAtsBoards("greenhouse:Stripe, ashby:ramp,bogus:x,lever:../etc");
+  check(
+    "JOBS_ATS_COMPANIES parses valid entries and drops bad ones",
+    JSON.stringify(boards) ===
+      JSON.stringify([
+        { ats: "greenhouse", slug: "stripe" },
+        { ats: "ashby", slug: "ramp" },
+      ]),
   );
 
   // --- fixturesSource behaviour ------------------------------------------------
@@ -175,10 +220,13 @@ async function main(): Promise<void> {
 
   console.log("\noffline enablement:");
 
-  check(
-    "fixturesSource.enabled() is true offline (JOBS_USE_FIXTURES not set to 0)",
-    fixturesSource.enabled(),
-  );
+  const prevFixtures = process.env.JOBS_USE_FIXTURES;
+  delete process.env.JOBS_USE_FIXTURES;
+  check("fixturesSource is off by default", !fixturesSource.enabled());
+  process.env.JOBS_USE_FIXTURES = "1";
+  check("fixturesSource.enabled() when JOBS_USE_FIXTURES=1", fixturesSource.enabled());
+  if (prevFixtures === undefined) delete process.env.JOBS_USE_FIXTURES;
+  else process.env.JOBS_USE_FIXTURES = prevFixtures;
 
   const enabled = enabledSources();
   check(
@@ -187,8 +235,8 @@ async function main(): Promise<void> {
   );
 
   check(
-    "enabledSources() includes fixtures",
-    enabled.some((s) => s.name === "fixtures"),
+    "enabledSources() excludes fixtures by default",
+    !enabled.some((s) => s.name === "fixtures"),
   );
 
   check(
@@ -198,10 +246,13 @@ async function main(): Promise<void> {
 
   console.log("\ndiscover() offline:");
 
+  process.env.JOBS_USE_FIXTURES = "1";
   const discovered = await discover("engineer");
-  check("discover('engineer') returns non-empty array offline", discovered.length > 0);
+  if (prevFixtures === undefined) delete process.env.JOBS_USE_FIXTURES;
+  else process.env.JOBS_USE_FIXTURES = prevFixtures;
+  check("discover('engineer') returns jobs in demo mode", discovered.length > 0);
   check(
-    "discover results include fixture-sourced jobs",
+    "demo-mode results include sample jobs",
     discovered.some((j) => j.source === "fixtures"),
   );
 

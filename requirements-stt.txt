@@ -1,0 +1,2 @@
+# Pinned; installed into .venv-stt by npm run setup.
+parakeet-mlx==0.4.1

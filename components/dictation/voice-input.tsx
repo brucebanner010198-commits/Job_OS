@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Square } from "lucide-react";
+import { Loader2, Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { transcribeAudioAction } from "@/app/actions/voice";
 
 export interface VoiceInputProps {
   value: string;
@@ -12,56 +13,21 @@ export interface VoiceInputProps {
   rows?: number;
 }
 
-/* Minimal local typings for the Web Speech API - the DOM lib does not ship these. */
-interface SpeechRecognitionAlternativeLike {
-  readonly transcript: string;
-}
-interface SpeechRecognitionResultLike {
-  readonly isFinal: boolean;
-  readonly length: number;
-  [index: number]: SpeechRecognitionAlternativeLike;
-}
-interface SpeechRecognitionResultListLike {
-  readonly length: number;
-  [index: number]: SpeechRecognitionResultLike;
-}
-interface SpeechRecognitionEventLike {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultListLike;
-}
-interface SpeechRecognitionErrorEventLike {
-  readonly error: string;
-}
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+type Status = "idle" | "recording" | "transcribing";
 
-function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as {
-    SpeechRecognition?: SpeechRecognitionCtor;
-    webkitSpeechRecognition?: SpeechRecognitionCtor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
+/**
+ * Textarea with a record button. Audio is recorded in the browser and
+ * transcribed by the local speech service on this computer; nothing is sent
+ * to a cloud speech API.
+ */
 export function VoiceInput(props: VoiceInputProps) {
   const { value, onChange, placeholder, label, rows = 6 } = props;
 
   const [supported, setSupported] = useState(false);
-  const [listening, setListening] = useState(false);
-  const [interim, setInterim] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<string | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  // Keep latest value in a ref so the recognition callback always appends to current text.
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const valueRef = useRef(value);
 
   useEffect(() => {
@@ -69,36 +35,13 @@ export function VoiceInput(props: VoiceInputProps) {
   }, [value]);
 
   useEffect(() => {
-    // Client-only API probe after mount (SSR has no SpeechRecognition).
+    // Client-only probe after mount; SSR has no MediaRecorder.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount probe
-    setSupported(getSpeechRecognitionCtor() !== null);
+    setSupported(typeof MediaRecorder !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia));
+    return () => recorderRef.current?.stream.getTracks().forEach((t) => t.stop());
   }, []);
 
-  const stopRecognition = () => {
-    const rec = recognitionRef.current;
-    if (rec) {
-      rec.onresult = null;
-      rec.onerror = null;
-      rec.onend = null;
-      try {
-        rec.stop();
-      } catch {
-        // ignore - already stopped
-      }
-      recognitionRef.current = null;
-    }
-    setListening(false);
-    setInterim("");
-  };
-
-  // Clean up on unmount.
-  useEffect(() => {
-    return () => {
-      stopRecognition();
-    };
-  }, []);
-
-  const appendFinal = (text: string) => {
+  const append = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
     const current = valueRef.current;
@@ -106,68 +49,41 @@ export function VoiceInput(props: VoiceInputProps) {
     onChange(current + (needsSpace ? " " : "") + trimmed);
   };
 
-  const startListening = () => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) return;
-
-    // Defensive: ensure no stale instance remains.
-    stopRecognition();
-
-    const rec = new Ctor();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = "en-US";
-
-    rec.onresult = (event: SpeechRecognitionEventLike) => {
-      let interimText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const alt = result[0];
-        if (!alt) continue;
-        if (result.isFinal) {
-          appendFinal(alt.transcript);
-        } else {
-          interimText += alt.transcript;
-        }
-      }
-      setInterim(interimText);
-    };
-
-    rec.onerror = () => {
-      stopRecognition();
-    };
-
-    rec.onend = () => {
-      // Reset state if recognition ends on its own.
-      setListening(false);
-      setInterim("");
-      recognitionRef.current = null;
-    };
-
-    recognitionRef.current = rec;
+  const start = async () => {
+    setError(null);
+    let stream: MediaStream;
     try {
-      rec.start();
-      setListening(true);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      stopRecognition();
+      setError("Microphone access was blocked. Allow it in the browser's site settings.");
+      return;
     }
+    const chunks: Blob[] = [];
+    const recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      setStatus("transcribing");
+      try {
+        const form = new FormData();
+        form.set("audio", new Blob(chunks, { type: recorder.mimeType }));
+        append((await transcribeAudioAction(form)).text);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Transcription failed.");
+      } finally {
+        setStatus("idle");
+      }
+    };
+    recorderRef.current = recorder;
+    recorder.start();
+    setStatus("recording");
   };
 
-  const toggleListening = () => {
-    if (listening) {
-      stopRecognition();
-    } else {
-      startListening();
-    }
-  };
+  const stop = () => recorderRef.current?.state === "recording" && recorderRef.current.stop();
 
   return (
     <div className="w-full">
-      {label ? (
-        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-          {label}
-        </label>
-      ) : null}
+      {label ? <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label> : null}
 
       <div className="relative">
         <textarea
@@ -186,18 +102,21 @@ export function VoiceInput(props: VoiceInputProps) {
         {supported ? (
           <button
             type="button"
-            onClick={toggleListening}
-            aria-pressed={listening}
-            aria-label={listening ? "Stop dictation" : "Start dictation"}
+            onClick={status === "recording" ? stop : start}
+            disabled={status === "transcribing"}
+            aria-pressed={status === "recording"}
+            aria-label={status === "recording" ? "Stop recording" : "Record a voice note"}
             className={cn(
               "absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center",
               "rounded-md border border-border bg-background text-muted-foreground",
               "transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
-              listening && "border-transparent bg-destructive/10 text-destructive",
+              status === "recording" && "border-transparent bg-destructive/10 text-destructive",
             )}
           >
-            {listening ? (
+            {status === "recording" ? (
               <Square className="h-4 w-4" fill="currentColor" />
+            ) : status === "transcribing" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Mic className="h-4 w-4" />
             )}
@@ -205,36 +124,16 @@ export function VoiceInput(props: VoiceInputProps) {
         ) : null}
       </div>
 
-      {supported ? (
-        <div className="mt-1.5 flex min-h-[1.25rem] items-center gap-2 text-xs">
-          {listening ? (
-            <>
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
-              </span>
-              <span className="text-muted-foreground">Listening…</span>
-              <button
-                type="button"
-                onClick={stopRecognition}
-                className="inline-flex items-center gap-1 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                <MicOff className="h-3 w-3" />
-                Stop
-              </button>
-              {interim ? (
-                <span className="truncate italic text-muted-foreground/70">
-                  {interim}
-                </span>
-              ) : null}
-            </>
-          ) : null}
-        </div>
-      ) : (
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          Tip: use Wispr Flow&apos;s hotkey to dictate cleaned text here, or just type.
-        </p>
-      )}
+      <p className="mt-1.5 min-h-[1.25rem] text-xs text-muted-foreground" aria-live="polite">
+        {error ??
+          (status === "recording"
+            ? "Recording… press stop when you're done."
+            : status === "transcribing"
+              ? "Transcribing on this computer…"
+              : supported
+                ? "Press the mic to talk. Audio is transcribed locally and not stored."
+                : "Voice needs a browser with microphone access; you can type instead.")}
+      </p>
     </div>
   );
 }

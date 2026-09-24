@@ -38,7 +38,7 @@ async function run() {
   let rejected = false;
   try {
     await driverDry.open("http://127.0.0.1:3000/apply");
-  } catch (err) {
+  } catch {
     rejected = true;
   }
   check("rejects non-public or loopback URLs safely", rejected);
@@ -55,7 +55,8 @@ async function run() {
 
   // 4. Concurrency invariant
   let doubleSubmitCaught = false;
-  const d = browserUseDriver();
+  // A stand-in interpreter that exits at once: this checks the guard, not the agent.
+  const d = browserUseDriver({ pythonPath: "/usr/bin/false" });
   await d.open("https://jobs.example.com/apply/123");
   // Simulate double submit guard
   try {

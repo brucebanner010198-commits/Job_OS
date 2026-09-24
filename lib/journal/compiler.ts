@@ -48,7 +48,7 @@ Follow these strict rules:
 
   try {
     const res = await chat({
-      tier: "standard",
+      task: "journalExtract",
       json: true,
       messages: [
         { role: "system", content: systemPrompt },

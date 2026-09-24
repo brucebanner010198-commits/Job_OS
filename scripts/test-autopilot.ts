@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 /**
  * Autopilot policy + orchestrator validation gate.
  * Run: npm run test:autopilot

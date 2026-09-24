@@ -2,8 +2,7 @@
  * pgvector-backed embedding cache + semantic axis similarity.
  *
  * Lexical scoring (lib/scoring/relevance.ts) remains the deterministic fallback
- * for offline tests and when OpenRouter is unconfigured. Live ingest uses this
- * module when embeddings are available.
+ * for offline tests and when the local embedding model is unavailable.
  */
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
@@ -56,27 +55,26 @@ export async function ensureEmbeddingTable(): Promise<void> {
 }
 
 /** Persist an embedding vector (pgvector column requires raw SQL). */
-export async function saveEmbedding(
-  scope: AppScope,
-  id: string,
-  key: string,
-  vec: number[],
-): Promise<void> {
+export async function saveEmbedding(scope: AppScope, key: string, vec: number[]): Promise<void> {
+  // The row id is a full hash of the cache key: truncated keys used to collide
+  // and silently drop vectors.
+  const id = createHash("sha256").update(`${scope.userId}:${key}`).digest("hex");
   const lit = vectorLiteral(vec);
   try {
     await db.$executeRawUnsafe(
-      `INSERT INTO "TextEmbedding" (id, "userId", "profileId", "cacheKey", embedding, "updatedAt")
+      `INSERT INTO "TextEmbedding" (id, "userId", "profileId", "cacheKey", "embedding768", "updatedAt")
        VALUES ($1, $2, $3, $4, $5::vector, NOW())
        ON CONFLICT ("userId", "cacheKey")
-       DO UPDATE SET embedding = EXCLUDED.embedding, "profileId" = EXCLUDED."profileId", "updatedAt" = NOW()`,
+       DO UPDATE SET "embedding768" = EXCLUDED."embedding768", "profileId" = EXCLUDED."profileId", "updatedAt" = NOW()`,
       id,
       scope.userId,
       scope.profileId,
       key,
       lit,
     );
-  } catch {
-    /* cache write failure is non-fatal */
+  } catch (err) {
+    // A failed cache write only costs a recompute later, but it should be visible.
+    console.warn("[embeddings] cache write failed:", (err as Error).message.split("\n").pop());
   }
 }
 
@@ -88,30 +86,9 @@ async function loadCached(
   const key = cacheKey(scope, text);
   try {
     const rows = await db.$queryRawUnsafe<{ embedding: string }[]>(
-      `SELECT embedding::text AS embedding FROM "TextEmbedding"
-       WHERE "userId" = $1 AND "cacheKey" = $2 LIMIT 1`,
+      `SELECT "embedding768"::text AS embedding FROM "TextEmbedding"
+       WHERE "userId" = $1 AND "cacheKey" = $2 AND "embedding768" IS NOT NULL LIMIT 1`,
       scope.userId,
-      key,
-    );
-    const raw = rows[0]?.embedding;
-    if (!raw) return null;
-    return parseVectorRaw(raw);
-  } catch {
-    return null;
-  }
-}
-
-/** Load embedding by exact cache key (used by knowledge retrieval). */
-export async function loadEmbeddingByCacheKey(
-  scope: AppScope,
-  key: string,
-): Promise<number[] | null> {
-  try {
-    const rows = await db.$queryRawUnsafe<{ embedding: string }[]>(
-      `SELECT embedding::text AS embedding FROM "TextEmbedding"
-       WHERE "userId" = $1 AND "profileId" = $2 AND "cacheKey" = $3 LIMIT 1`,
-      scope.userId,
-      scope.profileId,
       key,
     );
     const raw = rows[0]?.embedding;
@@ -128,9 +105,7 @@ async function saveCached(
   text: string,
   vec: number[],
 ): Promise<void> {
-  const key = cacheKey(scope, text);
-  const id = `${scope.profileId}_${key.slice(0, 16)}`;
-  await saveEmbedding(scope, id, key, vec);
+  await saveEmbedding(scope, cacheKey(scope, text), vec);
 }
 
 /**

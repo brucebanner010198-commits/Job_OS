@@ -50,7 +50,8 @@ export function ResumeIntake({
       try {
         const r = await importResumeAction(text);
         showResult(r);
-        if (r.added === 0 && text.trim()) {
+        if (r.background) setText("");
+        if (r.added === 0 && !r.background && text.trim()) {
           setError("No entries could be extracted. Check the text and try again.");
         }
       } catch (e) {
@@ -68,7 +69,7 @@ export function ResumeIntake({
         formData.set("file", file);
         const r = await uploadResumeFileAction(formData);
         showResult(r);
-        if (r.added === 0) {
+        if (r.added === 0 && !r.background) {
           setError("No entries could be extracted from this file. Try paste instead.");
         }
       } catch (e) {
@@ -175,6 +176,16 @@ export function ResumeIntake({
           error={error}
           title="Resume import issue"
         />
+      )}
+
+      {result?.background && (
+        <div className="rounded-lg border border-border bg-background p-3 text-sm">
+          <p className="font-medium">Importing a long resume in the background</p>
+          <p className="mt-1 text-muted-foreground">
+            It is read section by section on this computer, which can take several minutes.
+            Entries appear on your Master Resume as each section finishes.
+          </p>
+        </div>
       )}
 
       {result && result.added > 0 && (

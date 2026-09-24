@@ -421,8 +421,10 @@ export const fixtureJobs: RawJob[] = [
 export const fixturesSource: JobSource = {
   name: "fixtures",
 
+  // Sample postings are for tests and demos only; they must never mix into
+  // a real queue, so they are off unless explicitly requested.
   enabled(): boolean {
-    return process.env.JOBS_USE_FIXTURES !== "0";
+    return process.env.JOBS_USE_FIXTURES === "1";
   },
 
   async fetch(query: string): Promise<RawJob[]> {

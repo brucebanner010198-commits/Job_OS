@@ -1,3 +1,4 @@
+import "./lib/use-test-database";
 /**
  * E2E Journey Orchestrator - verifies the full Job OS user journey.
  * Uses fixture/mocks where LLM or OAuth are unavailable; exercises DB paths when
@@ -554,6 +555,7 @@ async function step8Gmail(): Promise<void> {
   const name = "Gmail proposal flow (mock if no OAuth)";
   const notes: string[] = [];
 
+  process.env.GMAIL_USE_FIXTURES = "1";
   const source = await getGmailSource();
   const emails = await source.listJobEmails();
   const processed = processEmails(emails, fixtureApps);

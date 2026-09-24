@@ -11,7 +11,7 @@ export default async function JournalPage() {
     <main className="mx-auto max-w-5xl px-6 py-10">
       <PageHeader
         title="Career journal & work logger"
-        description="Log your daily work, technical decisions, and point of view. The system automatically compiles your logs into verified, high-impact bullets for your Master CV every week."
+        description="Log your daily work, technical decisions, and point of view. Compile turns your logs into draft resume bullets; each one reaches your Master CV only after you approve it."
       />
       <JournalWorkspace initialLogs={logs} initialBullets={candidateBullets} />
     </main>
