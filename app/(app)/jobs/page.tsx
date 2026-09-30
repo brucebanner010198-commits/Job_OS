@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAppContext } from "@/lib/app-context";
 import { safeDb } from "@/lib/safe";
 import { listQueue, listFiltered, previewQueue } from "@/lib/jobs/service";
@@ -66,6 +67,15 @@ export default async function JobsPage() {
       <PageHeader
         title="Job queue"
         description="Find, screen, and score jobs matched to your profile. Expand any row to see why it ranked where it did."
+        action={
+          <Link
+            href="/feed"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20 transition-colors"
+          >
+            <span>Autonomous JEV Feed</span>
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
+        }
       />
 
       {dbError && <DbBanner />}
