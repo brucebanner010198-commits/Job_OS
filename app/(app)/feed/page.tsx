@@ -165,7 +165,9 @@ export default async function FeedPage() {
       frequencyCount: g.frequencyCount,
       priority: g.priority,
       status: g.status,
-      curriculum: (g.curriculum as any) || [],
+      curriculum: Array.isArray(g.curriculum)
+        ? (g.curriculum as Array<{ title: string; url: string; resourceType?: string }>)
+        : [],
     }));
 
     return {

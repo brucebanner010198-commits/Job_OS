@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   X,
   Sparkles,
@@ -15,7 +15,6 @@ import {
   Download,
   ExternalLink,
   ChevronRight,
-  Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,24 +61,12 @@ export function OneClickApplyModal({
   const [jevLaunching, setJevLaunching] = useState(false);
   const [jevLaunched, setJevLaunched] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && job) {
-      startPipeline();
-    } else {
-      setPipelineState("IDLE");
-      setDebateLog([]);
-      setCritique(null);
-      setErrorMsg(null);
-      setJevLaunched(false);
-    }
-  }, [isOpen, job?.id]);
-
-  const startPipeline = async () => {
+  const startPipeline = useCallback(async () => {
     if (!job) return;
     setPipelineState("RUNNING");
     setErrorMsg(null);
 
-    // Initial debate placeholder while model streams/processes
+    // Initial debate placeholder while model streams or processes
     setDebateLog([
       {
         agent: "drafter",
@@ -121,12 +108,34 @@ export function OneClickApplyModal({
 
       setPipelineState("READY");
       setActiveTab("CV");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || "An unexpected error occurred");
+      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      setErrorMsg(message);
       setPipelineState("ERROR");
     }
+  }, [job]);
+
+  const handleClose = () => {
+    setPipelineState("IDLE");
+    setDebateLog([]);
+    setCritique(null);
+    setErrorMsg(null);
+    setJevLaunched(false);
+    onClose();
   };
+
+  useEffect(() => {
+    if (!isOpen || !job) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void startPipeline();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, job, startPipeline]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -174,7 +183,7 @@ export function OneClickApplyModal({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="h-5 w-5" />
@@ -486,7 +495,7 @@ export function OneClickApplyModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
+            <Button variant="ghost" size="sm" onClick={handleClose} className="text-xs">
               Close
             </Button>
 

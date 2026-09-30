@@ -6,23 +6,15 @@ import {
   Sparkles,
   Bot,
   CheckCircle2,
-  XCircle,
   AlertTriangle,
-  ArrowRight,
   ExternalLink,
-  Flame,
   Search,
-  Filter,
   Layers,
   List,
   ChevronLeft,
   ChevronRight,
-  Plus,
   Loader2,
   MessagesSquare,
-  ThumbsDown,
-  ThumbsUp,
-  Briefcase,
   Building2,
   MapPin,
 } from "lucide-react";
@@ -107,8 +99,9 @@ export function JobFeed({
         setJobs((prev) => [newJob, ...prev].sort((a, b) => b.fitScore - a.fitScore));
         setUrlInput("");
         setCurrentDeckIndex(0);
-      } catch (err: any) {
-        setEvalError(err.message || "Failed to evaluate job URL");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to evaluate job URL";
+        setEvalError(message);
       }
     });
   };

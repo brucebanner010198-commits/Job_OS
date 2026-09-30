@@ -3,16 +3,13 @@
 import { useState } from "react";
 import {
   Flame,
-  BookOpen,
   CheckCircle2,
   Clock,
   ExternalLink,
   Plus,
-  AlertCircle,
   TrendingUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 export interface SkillGapItem {
   id?: string;

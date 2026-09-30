@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app-context";
 import { safeDb } from "@/lib/safe";
 import { db } from "@/lib/db";
@@ -83,7 +82,7 @@ export default async function DynamicInterviewPage({
     const brief = companyRecord?.briefs[0];
     const companySummary = brief?.summary || undefined;
     const companyClaims = Array.isArray(brief?.claims)
-      ? (brief.claims as any[]).map((c) => ({
+      ? (brief.claims as Array<{ text: string; category?: string }>).map((c) => ({
           text: c.text,
           category: c.category,
         }))

@@ -50,10 +50,11 @@ export async function POST(req: Request) {
       ok: true,
       result,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Drafter-Reviewer API error:", err);
+    const message = err instanceof Error ? err.message : "Internal server error during Drafter-Reviewer chain";
     return NextResponse.json(
-      { error: err?.message || "Internal server error during Drafter-Reviewer chain" },
+      { error: message },
       { status: 500 },
     );
   }

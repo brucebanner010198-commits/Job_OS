@@ -5,23 +5,34 @@ import Link from "next/link";
 import {
   Mic,
   MicOff,
-  Bot,
   Building2,
-  Sparkles,
-  CheckCircle2,
-  Volume2,
-  RotateCcw,
-  Send,
   Loader2,
-  ChevronRight,
-  ShieldCheck,
-  Star,
   Award,
   ArrowLeft,
-  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+interface SpeechRecognitionResultItem {
+  transcript: string;
+}
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: {
+    [index: number]: SpeechRecognitionResultItem;
+  };
+}
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+}
+interface BrowserSpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
 
 export interface StarExample {
   category: string;
@@ -55,7 +66,7 @@ export function DynamicPrepHub({
 
   // Audio Mock Interview state
   const [isRecording, setIsRecording] = useState(false);
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
   const [audioTranscript, setAudioTranscript] = useState("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [mockFeedback, setMockFeedback] = useState<{
@@ -71,19 +82,20 @@ export function DynamicPrepHub({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Speech Recognition (Web Speech API / Whisper fallback)
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
+      const SpeechRecognitionCtor =
+        (window as unknown as { SpeechRecognition?: new () => BrowserSpeechRecognition }).SpeechRecognition ||
+        (window as unknown as { webkitSpeechRecognition?: new () => BrowserSpeechRecognition }).webkitSpeechRecognition;
+      if (SpeechRecognitionCtor) {
+        const recognition = new SpeechRecognitionCtor();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = "en-US";
 
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
           let current = "";
           for (let i = 0; i < event.results.length; i++) {
             current += event.results[i][0].transcript + " ";
@@ -97,8 +109,8 @@ export function DynamicPrepHub({
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (audioStream) {
-        audioStream.getTracks().forEach((t) => t.stop());
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
   }, []);
@@ -106,7 +118,7 @@ export function DynamicPrepHub({
   const startMockRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setAudioStream(stream);
+      audioStreamRef.current = stream;
 
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -124,7 +136,7 @@ export function DynamicPrepHub({
       timerRef.current = setInterval(() => {
         setRecordingSeconds((s) => s + 1);
       }, 1000);
-    } catch (err: any) {
+    } catch {
       alert("Microphone permission required for audio mock interview.");
     }
   };
@@ -136,8 +148,8 @@ export function DynamicPrepHub({
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    if (audioStream) {
-      audioStream.getTracks().forEach((t) => t.stop());
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((t) => t.stop());
     }
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -359,7 +371,7 @@ export function DynamicPrepHub({
               Overview
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {companySummary ||
+              {companySummary || description ||
                 `${company} operates high-scale software services with an emphasis on engineering excellence, developer velocity, and product autonomy. The engineering culture values clear technical design docs, iterative ship cadences, and measurable business impact.`}
             </p>
           </div>

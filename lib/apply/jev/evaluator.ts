@@ -133,7 +133,7 @@ export async function scrapeJobUrl(url: string): Promise<ScrapedJobData> {
     } finally {
       await browser.close();
     }
-  } catch (err) {
+  } catch {
     // Playwright failed or not configured, fallback to standard fetch
     return await scrapeJobUrlFallback(url);
   }
@@ -310,7 +310,7 @@ Perform the evaluation according to the system rubric. Output valid JSON only.`;
       ],
     });
     chatResultText = chatResult.text.trim();
-  } catch (err: any) {
+  } catch {
     // Graceful offline fallback
     return {
       fit_score: 80,
@@ -537,12 +537,13 @@ export async function processEvaluationQueue(
         fitScore: res.evaluation.fitScore,
         success: true,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err.message : String(err);
       results.push({
         url,
         fitScore: 0,
         success: false,
-        error: err?.message || String(err),
+        error,
       });
     }
   }

@@ -133,7 +133,7 @@ Draft the tailored CV and Cover Letter adhering strictly to candidate profile tr
       ],
     });
     initialDraft = parseDrafterOutput(drafterResult.text);
-  } catch (err: any) {
+  } catch {
     initialDraft = {
       tailoredCv: `# Tailored Profile: ${params.jobTitle} at ${params.company}\n\n## Professional Summary\nDemonstrated expertise matching ${params.company} technical criteria, verified against candidate master profile.\n\n## Key Highlights\n- Extensive full-stack and systems engineering background\n- Concrete delivery track record across modern architectures`,
       coverLetter: `Dear Hiring Team at ${params.company},\n\nI am writing to formally submit my application for the ${params.jobTitle} role. Having reviewed the technical demands of this position, my experience and background directly address your requirements.\n\nSincerely,\nCandidate`,
@@ -178,7 +178,7 @@ Conduct a strict audit for honesty, ATS match, and framing.`;
       ],
     });
     critique = parseReviewerOutput(reviewerResult.text);
-  } catch (err: any) {
+  } catch {
     critique = {
       weakFramingIssues: [],
       missingAtsKeywords: [],

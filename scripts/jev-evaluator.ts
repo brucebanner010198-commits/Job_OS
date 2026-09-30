@@ -11,9 +11,7 @@
  */
 
 import "dotenv/config";
-import { appendFileSync, mkdtempSync, readFileSync, existsSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { appendFileSync, readFileSync, existsSync } from "node:fs";
 import { db, disconnectDatabase } from "@/lib/db";
 import {
   evaluateJobFit,
@@ -40,7 +38,6 @@ APPLICATION PREFERENCES:
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const flags = new Set(args.filter((a) => a.startsWith("--")));
   const nonFlags = args.filter((a) => !a.startsWith("--"));
 
   if (nonFlags.length === 0) {
@@ -74,15 +71,16 @@ async function main(): Promise<void> {
 
   // Resolve profile context
   let profileContext = FALLBACK_PERSONA_CONTEXT;
-  let resolvedProfile: any = null;
+  let resolvedProfile: { id: string; userId: string; name: string } | null = null;
 
   if (profileId) {
     try {
       profileContext = await compileMasterProfileContext(profileId);
       resolvedProfile = await db.profile.findUnique({ where: { id: profileId }, include: { user: true } });
       console.log(`Using Master Profile: ${resolvedProfile?.name || profileId}`);
-    } catch (err: any) {
-      console.warn(`Could not load profile ${profileId}, using fallback persona. Error: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`Could not load profile ${profileId}, using fallback persona. Error: ${msg}`);
     }
   } else {
     try {
@@ -185,8 +183,9 @@ async function main(): Promise<void> {
           );
 
           console.log(`  [DB] Saved JobPosting, JobEvaluation, and updated LearningGoals.`);
-        } catch (dbErr: any) {
-          console.warn(`  [DB] Could not save to DB: ${dbErr.message}`);
+        } catch (dbErr: unknown) {
+          const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+          console.warn(`  [DB] Could not save to DB: ${msg}`);
         }
       }
 
@@ -205,11 +204,12 @@ async function main(): Promise<void> {
         evaluated_at: new Date().toISOString(),
       };
       appendFileSync(outFile, JSON.stringify(record) + "\n");
-    } catch (err: any) {
-      console.error(`  [ERROR] Failed to evaluate ${url}: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error(`  [ERROR] Failed to evaluate ${url}: ${errorMsg}`);
       const errorRecord = {
         url,
-        error: err.message,
+        error: errorMsg,
         evaluated_at: new Date().toISOString(),
       };
       appendFileSync(outFile, JSON.stringify(errorRecord) + "\n");

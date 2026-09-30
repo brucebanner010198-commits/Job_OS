@@ -20,8 +20,9 @@ export async function GET() {
     });
 
     return NextResponse.json({ ok: true, postings });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -47,8 +48,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ ok: true, ...result });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Evaluation API error:", err);
-    return NextResponse.json({ error: err?.message || "Evaluation failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Evaluation failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
