@@ -50,6 +50,8 @@ model User {
   candidateBullets  CandidateBullet[]
   certificationDocuments CertificationDocument[]
   simulationRounds       InterviewSimulationRound[]
+  jobPostings            JobPosting[]
+  learningGoals          LearningGoal[]
 }
 
 // Named identity within one install (e.g. "Sam", "Alex"). Career data is scoped
@@ -91,6 +93,15 @@ model Profile {
   candidateBullets   CandidateBullet[]
   certificationDocuments CertificationDocument[]
   simulationRounds       InterviewSimulationRound[]
+  jobPostings        JobPosting[]
+  learningGoals      LearningGoal[]
+
+  // Structured persona data (Education, Experience, Behavioral traits, Deal-breakers, Core Competencies)
+  education          Json?
+  experience         Json?
+  behavioralTraits   Json?
+  dealBreakers       Json?
+  coreCompetencies   Json?
 
   @@unique([userId, name])
   @@index([userId])
@@ -264,6 +275,7 @@ model Job {
 
 // ─── Applications ────────────────────────────────────────────────────────
 enum ApplicationStatus {
+  WISHLIST
   WARM_PATH
   TO_APPLY
   APPLIED
@@ -292,9 +304,13 @@ model Application {
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   profileId   String
   profile     Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  jobId       String            @unique // one application per job — no double-applies (plan §C)
-  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  status      ApplicationStatus @default(TO_APPLY)
+  jobId          String            @unique // one application per job — no double-applies (plan §C)
+  job            Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobPostingId   String?           @unique
+  jobPosting     JobPosting?       @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  tailoredCv     String?           @db.Text
+  coverLetterText String?          @db.Text
+  status         ApplicationStatus @default(TO_APPLY)
   applyState  ApplyState        @default(QUEUED)
   // Apply-engine plan (Phase 5). All JSON, DB-decoupled shapes in lib/apply/types.ts.
   route          AutonomyRoute? // AUTONOMOUS | ASSISTED | MANUAL routing decision
@@ -973,4 +989,66 @@ model PrivacyLedgerEntry {
 
   @@index([createdAt])
   @@index([local, createdAt])
+}
+
+// ─── Autonomous Agentic Job Pipeline (Phase 1) ───────────────────────────
+
+model JobPosting {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  url         String
+  title       String
+  company     String
+  location    String?
+  description String   @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  evaluation  JobEvaluation?
+  application Application?
+
+  @@index([userId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+model JobEvaluation {
+  id              String      @id @default(cuid())
+  jobPostingId    String      @unique
+  jobPosting      JobPosting  @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  fitScore        Int         // 0-100
+  pros            String[]    // Why this is a good fit
+  cons            String[]    // Identified gaps
+  missingKeywords String[]    // Missing ATS keywords
+  rubric          Json?       // Detailed scoring rubric breakdown
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([jobPostingId])
+  @@index([fitScore])
+}
+
+model LearningGoal {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId      String
+  profile        Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill          String
+  category       String?
+  status         String    @default("PLANNED") // PLANNED | IN_PROGRESS | COMPLETED
+  priority       Int       @default(1)
+  frequencyCount Int       @default(1)
+  targetDate     DateTime?
+  curriculum     Json?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([profileId, status])
+  @@index([profileId, skill])
 }

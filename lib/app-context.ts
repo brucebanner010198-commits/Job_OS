@@ -74,6 +74,11 @@ function offlineAppContext(): AppContext {
     id: OFFLINE_SCOPE_ID,
     userId: OFFLINE_SCOPE_ID,
     name: DEFAULT_PROFILE_NAME,
+    education: null,
+    experience: null,
+    behavioralTraits: null,
+    dealBreakers: null,
+    coreCompetencies: null,
     createdAt: now,
     updatedAt: now,
   };

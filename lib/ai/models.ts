@@ -35,6 +35,10 @@ export const TASK_TIER = {
   // Browser agent that fills application forms (vision + multi-step).
   applyAgent: "strong",
   journalExtract: "standard",
+  jobEvaluation: "standard",
+  drafterCv: "strong",
+  drafterCoverLetter: "strong",
+  reviewerAudit: "standard",
 } as const satisfies Record<string, ModelTier>;
 
 export type TaskName = keyof typeof TASK_TIER;
