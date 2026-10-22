@@ -79,22 +79,22 @@
     "test:apply-human": "tsx scripts/test-apply-human.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dotenv": "^18.0.1",
-    "lucide-react": "^1.47.0",
-    "mammoth": "^1.12.3",
-    "next": "^16.2.9",
+    "dotenv": "^18.0.8",
+    "lucide-react": "^1.59.0",
+    "mammoth": "^1.13.0",
+    "next": "^16.4.2",
     "pdf-parse": "^2.4.5",
-    "pg": "^8.23.0",
-    "playwright-core": "^1.63.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "pg": "^8.23.1",
+    "playwright-core": "^1.64.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "optionalDependencies": {
     "keytar": "^7.9.0"
